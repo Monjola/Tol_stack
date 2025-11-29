@@ -217,6 +217,30 @@ button:hover {
   overflow: hidden;
 }
 
+.pareto-chart-wrapper {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-end;
+}
+
+.pareto-y-axis {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 220px;
+  padding-top: 0;
+  padding-bottom: 0;
+  min-width: 40px;
+}
+
+.y-axis-label {
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-align: right;
+  padding-right: 0.5rem;
+  line-height: 1;
+}
+
 .pareto-bars {
   display: flex;
   align-items: flex-end;
@@ -224,6 +248,7 @@ button:hover {
   height: 220px;
   position: relative;
   z-index: 1;
+  flex: 1;
 }
 
 .bar-container {
@@ -266,8 +291,8 @@ button:hover {
 
 .cumulative-line {
   position: absolute;
-  top: 1rem;
-  left: 1rem;
+  top: 0;
+  left: 0;
   pointer-events: none;
   z-index: 2;
 }
@@ -281,6 +306,63 @@ button:hover {
 .cumulative-line circle {
   fill: var(--warning);
   r: 3;
+}
+
+.pareto-info {
+  margin-bottom: 1rem;
+}
+
+.pareto-explanation {
+  font-size: 0.9rem;
+  color: var(--muted);
+  line-height: 1.6;
+  margin: 0;
+}
+
+.pareto-explanation strong {
+  color: var(--text);
+  font-weight: 600;
+}
+
+.pareto-legend {
+  margin-top: 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--border);
+}
+
+.legend-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: center;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+  color: var(--text);
+}
+
+.legend-icon {
+  width: 20px;
+  height: 20px;
+  flex-shrink: 0;
+}
+
+.legend-line {
+  border: 2px solid var(--warning);
+  background: transparent;
+  height: 2px;
+  width: 24px;
+  border-radius: 0;
+}
+
+.legend-bar {
+  border-radius: 0.25rem 0.25rem 0 0;
+  height: 16px;
+  width: 16px;
 }
 
 dialog {

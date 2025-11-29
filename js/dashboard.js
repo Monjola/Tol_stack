@@ -67,6 +67,7 @@ function renderPareto(totalVariance) {
 
   if (!totalVariance || totalVariance === 0) {
     container.innerHTML = `<p class="bar-label">Add stack data to view Pareto contributions.</p>`;
+    renderLegend(); // Still render legend even with no data
     return;
   }
 
@@ -82,6 +83,22 @@ function renderPareto(totalVariance) {
   });
 
   const sorted = contributions.sort((a, b) => b.percent - a.percent);
+  
+  // Create Y-axis container
+  const chartWrapper = document.createElement("div");
+  chartWrapper.className = "pareto-chart-wrapper";
+  
+  const yAxis = document.createElement("div");
+  yAxis.className = "pareto-y-axis";
+  
+  // Create Y-axis labels (0% to 100% in 20% increments)
+  for (let i = 100; i >= 0; i -= 20) {
+    const label = document.createElement("div");
+    label.className = "y-axis-label";
+    label.textContent = `${i}%`;
+    yAxis.appendChild(label);
+  }
+  
   const barsWrap = document.createElement("div");
   barsWrap.className = "pareto-bars";
 
@@ -102,7 +119,11 @@ function renderPareto(totalVariance) {
     const pixelHeight = (percentHeight / 100) * 220;
     fill.style.height = `${pixelHeight}px`;
     fill.style.minHeight = percentHeight > 0 ? '4px' : '0';
-    fill.style.background = entry.percent > 40 ? "var(--danger)" : "var(--accent)";
+    
+    // Color based on cumulative contribution: red for vital few (<=80%), blue for trivial many (>80%)
+    cumulative += entry.percent;
+    const isVitalFew = cumulative <= 80;
+    fill.style.background = isVitalFew ? "var(--danger)" : "var(--accent)";
 
     const valueLabel = document.createElement("div");
     valueLabel.className = "bar-label";
@@ -112,9 +133,15 @@ function renderPareto(totalVariance) {
     wrapper.append(bar, valueLabel);
     barsWrap.appendChild(wrapper);
   });
+  
+  // Reset cumulative for line calculation
+  cumulative = 0;
+  
+  chartWrapper.appendChild(yAxis);
+  chartWrapper.appendChild(barsWrap);
 
-  // Append bars first so we can measure their actual positions
-  container.appendChild(barsWrap);
+  // Append chart wrapper first so we can measure their actual positions
+  container.appendChild(chartWrapper);
 
   // Use requestAnimationFrame to ensure layout is complete
   requestAnimationFrame(() => {
@@ -155,7 +182,57 @@ function renderPareto(totalVariance) {
       svg.appendChild(dot);
     });
 
-    container.appendChild(svg);
+    barsWrap.appendChild(svg);
   });
+  
+  // Create and render legend
+  renderLegend();
+}
+
+function renderLegend() {
+  const legendContainer = document.querySelector('.pareto-legend');
+  if (!legendContainer) return;
+  
+  legendContainer.innerHTML = '';
+  
+  const legend = document.createElement('div');
+  legend.className = 'legend-items';
+  
+  // Cumulative line legend item
+  const lineItem = document.createElement('div');
+  lineItem.className = 'legend-item';
+  const lineIcon = document.createElement('div');
+  lineIcon.className = 'legend-icon legend-line';
+  const lineLabel = document.createElement('span');
+  lineLabel.textContent = 'Cumulative Contribution';
+  lineItem.appendChild(lineIcon);
+  lineItem.appendChild(lineLabel);
+  
+  // Vital few legend item
+  const vitalItem = document.createElement('div');
+  vitalItem.className = 'legend-item';
+  const vitalIcon = document.createElement('div');
+  vitalIcon.className = 'legend-icon legend-bar';
+  vitalIcon.style.background = 'var(--danger)';
+  const vitalLabel = document.createElement('span');
+  vitalLabel.textContent = 'Vital Few (≤80%)';
+  vitalItem.appendChild(vitalIcon);
+  vitalItem.appendChild(vitalLabel);
+  
+  // Trivial many legend item
+  const trivialItem = document.createElement('div');
+  trivialItem.className = 'legend-item';
+  const trivialIcon = document.createElement('div');
+  trivialIcon.className = 'legend-icon legend-bar';
+  trivialIcon.style.background = 'var(--accent)';
+  const trivialLabel = document.createElement('span');
+  trivialLabel.textContent = 'Trivial Many (>80%)';
+  trivialItem.appendChild(trivialIcon);
+  trivialItem.appendChild(trivialLabel);
+  
+  legend.appendChild(lineItem);
+  legend.appendChild(vitalItem);
+  legend.appendChild(trivialItem);
+  legendContainer.appendChild(legend);
 }
 
