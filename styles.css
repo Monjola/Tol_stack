@@ -312,7 +312,7 @@ tbody input[type="checkbox"] {
   right: 2px;
   width: 8px;
   height: 8px;
-  background: var(--danger);
+  background: var(--success);
   border-radius: 50%;
   border: 1px solid var(--card);
   z-index: 1;
@@ -335,6 +335,8 @@ tbody input[type="checkbox"] {
   align-items: center;
   justify-content: center;
   position: relative;
+  overflow: auto;
+  max-height: calc(95vh - 200px);
 }
 
 .source-upload-area.drag-over {
@@ -352,15 +354,17 @@ tbody input[type="checkbox"] {
 
 .source-image-wrapper {
   position: relative;
-  width: 100%;
+  width: auto;
   max-width: 100%;
   display: flex;
   justify-content: center;
 }
 
 .source-image-wrapper img {
-  max-width: 100%;
-  max-height: 500px;
+  max-width: min(100%, calc(95vw - 4rem));
+  max-height: calc(95vh - 200px);
+  width: auto;
+  height: auto;
   object-fit: contain;
   display: block;
 }
@@ -709,6 +713,15 @@ dialog {
   background: var(--card);
   color: var(--text);
   width: min(420px, 90vw);
+  max-width: 95vw;
+  max-height: 95vh;
+  overflow: auto;
+}
+
+#source-dialog {
+  width: auto;
+  min-width: min(420px, 90vw);
+  max-width: 95vw;
 }
 
 dialog::backdrop {

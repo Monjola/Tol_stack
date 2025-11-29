@@ -408,8 +408,10 @@ function setupSourceDialogs() {
       e.preventDefault();
       isDrawing = true;
       const rect = sourceCanvas.getBoundingClientRect();
-      const scaleX = sourceCanvas.width / rect.width;
-      const scaleY = sourceCanvas.height / rect.height;
+      const image = document.getElementById("source-image");
+      // Scale coordinates from display size to natural size
+      const scaleX = image.naturalWidth / rect.width;
+      const scaleY = image.naturalHeight / rect.height;
       startX = (e.clientX - rect.left) * scaleX;
       startY = (e.clientY - rect.top) * scaleY;
       currentRect = { x: startX, y: startY, width: 0, height: 0 };
@@ -420,8 +422,10 @@ function setupSourceDialogs() {
       if (!isDrawing || !sourceImage) return;
       e.preventDefault();
       const rect = sourceCanvas.getBoundingClientRect();
-      const scaleX = sourceCanvas.width / rect.width;
-      const scaleY = sourceCanvas.height / rect.height;
+      const image = document.getElementById("source-image");
+      // Scale coordinates from display size to natural size
+      const scaleX = image.naturalWidth / rect.width;
+      const scaleY = image.naturalHeight / rect.height;
       const currentX = (e.clientX - rect.left) * scaleX;
       const currentY = (e.clientY - rect.top) * scaleY;
       
@@ -485,13 +489,19 @@ function displayImage(imageUrl) {
     placeholder.style.display = "none";
     removeBtn.style.display = "block";
     
+    // Let CSS handle sizing with viewport constraints
+    image.style.width = "auto";
+    image.style.height = "auto";
+    
     // Set canvas size to match image display size
     if (sourceCanvas) {
       // Wait a frame for layout to settle
       requestAnimationFrame(() => {
         const rect = image.getBoundingClientRect();
-        sourceCanvas.width = rect.width;
-        sourceCanvas.height = rect.height;
+        // Use natural dimensions for canvas internal resolution
+        sourceCanvas.width = image.naturalWidth;
+        sourceCanvas.height = image.naturalHeight;
+        // Set display size to match image display size
         sourceCanvas.style.width = rect.width + "px";
         sourceCanvas.style.height = rect.height + "px";
         // Redraw existing rectangle if any
@@ -507,13 +517,18 @@ function displayImage(imageUrl) {
 function drawCanvas() {
   if (!sourceCtx || !sourceCanvas || !sourceImage) return;
   
+  const image = document.getElementById("source-image");
+  if (!image) return;
+  
   // Clear canvas
   sourceCtx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
   
   // Draw rectangle if exists
   if (currentRect && (currentRect.width !== 0 || currentRect.height !== 0)) {
     sourceCtx.strokeStyle = "#ff7b72";
-    sourceCtx.lineWidth = 2;
+    // Scale line width based on image size
+    const scale = Math.min(sourceCanvas.width / image.offsetWidth, sourceCanvas.height / image.offsetHeight);
+    sourceCtx.lineWidth = Math.max(2, 2 * scale);
     sourceCtx.setLineDash([]);
     sourceCtx.strokeRect(
       currentRect.x,
