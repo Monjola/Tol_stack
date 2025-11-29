@@ -343,19 +343,31 @@ function updateDashboardScale() {
   const container = document.querySelector('.dashboard-container');
   if (!container) return;
   
-  const containerWidth = container.scrollWidth;
+  // Temporarily remove transform and set width to auto to get natural size
+  const savedTransform = container.style.transform;
+  const savedWidth = container.style.width;
+  container.style.transform = 'scale(1)';
+  container.style.width = 'auto';
+  
+  // Force a reflow to get accurate measurements
+  void container.offsetWidth;
+  
+  // Get the actual rendered width of the container (natural size)
+  const naturalWidth = container.getBoundingClientRect().width;
   const viewportWidth = window.innerWidth;
   const padding = 32; // Account for page padding
+  const availableWidth = viewportWidth - padding;
   
-  if (containerWidth > viewportWidth - padding) {
-    const scale = (viewportWidth - padding) / containerWidth;
+  if (naturalWidth > availableWidth) {
+    const scale = availableWidth / naturalWidth;
     container.style.transform = `scale(${scale})`;
-    container.style.width = `${containerWidth}px`;
-    // Adjust height to account for scaling
-    container.style.marginBottom = `${(1 - scale) * container.scrollHeight}px`;
+    container.style.width = `${naturalWidth}px`;
+    // Adjust height to account for scaling (prevent layout shift)
+    const naturalHeight = container.getBoundingClientRect().height;
+    container.style.marginBottom = `${(1 - scale) * naturalHeight}px`;
   } else {
     container.style.transform = 'scale(1)';
-    container.style.width = '100%';
+    container.style.width = 'auto';
     container.style.marginBottom = '0';
   }
 }

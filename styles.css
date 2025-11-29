@@ -417,9 +417,10 @@ button:hover {
 }
 
 .dashboard-container {
-  width: 100%;
+  width: fit-content;
   transform-origin: top left;
   transition: transform 0.2s ease;
+  display: inline-block;
 }
 
 .stats-grid {
