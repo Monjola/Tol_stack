@@ -1,4 +1,4 @@
-import { stackData } from './data.js';
+import { stackData, settings } from './data.js';
 
 // Dashboard calculations and Pareto chart
 export function setupDashboard() {
@@ -7,27 +7,65 @@ export function setupDashboard() {
 
 export function calculateStack() {
   let stackMean = 0;
+  let worstCase = 0;
+  let rss = 0;
   let stackVariance = 0;
 
   stackData.forEach((row) => {
     const { nominalAdj, tolAdj } = parseAsymmetry(row.tol, row.nominal);
+    stackMean += nominalAdj;
+    worstCase += tolAdj; // Worst case is sum of all tolerances
+    
+    // RSS (Root Sum Square)
+    rss += tolAdj ** 2;
+    
+    // For advanced stats with Cpk
     const cpk = row.cpk || 1.33;
     const rowSigma = tolAdj / (3 * cpk || 1);
-    stackMean += nominalAdj;
     stackVariance += rowSigma ** 2;
   });
 
+  const rssValue = Math.sqrt(rss);
   const stackSigma = Math.sqrt(stackVariance);
-  const range3 = `${(stackMean - 3 * stackSigma).toFixed(3)} / ${(stackMean + 3 * stackSigma).toFixed(3)}`;
-  const range6 = `${(stackMean - 6 * stackSigma).toFixed(3)} / ${(stackMean + 6 * stackSigma).toFixed(3)}`;
+  const range3 = 3 * stackSigma;
+  const range6 = 6 * stackSigma;
 
+  // Always show stack mean
   document.getElementById("stat-mean").textContent = stackMean.toFixed(3);
-  document.getElementById("stat-sigma").textContent = stackSigma.toFixed(3);
-  document.getElementById("stat-3sigma").textContent = range3;
-  document.getElementById("stat-6sigma").textContent = range6;
+  
+  // Show/hide basic vs advanced stats based on advanced statistical mode
+  const showAdvanced = settings.advancedStatisticalMode;
+  const worstCaseCard = document.getElementById("stat-worst-case-card");
+  const rssCard = document.getElementById("stat-rss-card");
+  const sigmaCard = document.getElementById("stat-sigma-card");
+  const sigma3Card = document.getElementById("stat-3sigma-card");
+  const sigma6Card = document.getElementById("stat-6sigma-card");
+  
+  if (showAdvanced) {
+    // Hide basic stats, show advanced stats
+    if (worstCaseCard) worstCaseCard.style.display = 'none';
+    if (rssCard) rssCard.style.display = 'none';
+    
+    document.getElementById("stat-sigma").textContent = `±${stackSigma.toFixed(3)}`;
+    document.getElementById("stat-3sigma").textContent = `±${range3.toFixed(3)}`;
+    document.getElementById("stat-6sigma").textContent = `±${range6.toFixed(3)}`;
+    if (sigmaCard) sigmaCard.style.display = '';
+    if (sigma3Card) sigma3Card.style.display = '';
+    if (sigma6Card) sigma6Card.style.display = '';
+  } else {
+    // Show basic stats, hide advanced stats
+    document.getElementById("stat-worst-case").textContent = `±${worstCase.toFixed(3)}`;
+    document.getElementById("stat-rss").textContent = `±${rssValue.toFixed(3)}`;
+    if (worstCaseCard) worstCaseCard.style.display = '';
+    if (rssCard) rssCard.style.display = '';
+    
+    if (sigmaCard) sigmaCard.style.display = 'none';
+    if (sigma3Card) sigma3Card.style.display = 'none';
+    if (sigma6Card) sigma6Card.style.display = 'none';
+  }
 
   renderPareto(stackVariance);
-  console.log({ stackMean, stackSigma, range3, range6 });
+  console.log({ stackMean, worstCase, rss: rssValue, standardDeviation: stackSigma, processRange3Sigma: range3, range6Sigma: range6 });
 }
 
 export function parseAsymmetry(tol, nominal) {
