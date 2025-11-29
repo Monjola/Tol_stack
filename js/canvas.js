@@ -49,33 +49,36 @@ export function redrawAnnotations() {
   const ctx = state.ctx;
   ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
   ctx.lineWidth = 2;
-  const strokeColor = "#58a6ff";
-  const fillColor = "rgba(88,166,255,0.15)";
+  const strokeColor = "#ff4444"; // Red
+  const fillColor = "#ffffff"; // White for balloon fill
   ctx.strokeStyle = strokeColor;
   ctx.fillStyle = fillColor;
 
-  annotations.forEach((entry, index) => {
+  // Count only balloons for numbering
+  let balloonCount = 0;
+  annotations.forEach((entry) => {
     if (entry.type === "balloon") {
-      drawBalloon(ctx, entry.x, entry.y, index + 1, strokeColor, fillColor);
+      balloonCount++;
+      drawBalloon(ctx, entry.x, entry.y, balloonCount, strokeColor, fillColor);
     } else if (entry.type === "arrow") {
       drawArrow(ctx, entry.start, entry.end, strokeColor);
     }
   });
 
   if (state.previewEnd && state.start) {
-    drawArrow(ctx, state.start, state.previewEnd, "rgba(88,166,255,0.5)");
+    drawArrow(ctx, state.start, state.previewEnd, "rgba(255,68,68,0.5)"); // Red with transparency
   }
 }
 
 function drawBalloon(ctx, x, y, label, stroke, fill) {
   ctx.save();
   ctx.beginPath();
-  ctx.fillStyle = fill;
-  ctx.strokeStyle = stroke;
+  ctx.fillStyle = fill; // White fill
+  ctx.strokeStyle = stroke; // Red stroke
   ctx.arc(x, y, 18, 0, Math.PI * 2);
   ctx.fill();
   ctx.stroke();
-  ctx.fillStyle = "#e6edf3";
+  ctx.fillStyle = "#000000"; // Black text
   ctx.font = "14px 'Inter', 'Segoe UI', sans-serif";
   ctx.textAlign = "center";
   ctx.textBaseline = "middle";
