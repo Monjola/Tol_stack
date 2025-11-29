@@ -505,6 +505,14 @@ button:hover {
   font-weight: 600;
 }
 
+.stat-mean-yellow {
+  color: #ffd700 !important; /* Gold/Yellow */
+}
+
+.stat-mean-red {
+  color: #ff4444 !important; /* Red */
+}
+
 #pareto-chart {
   position: relative;
   border: 1px solid var(--border);

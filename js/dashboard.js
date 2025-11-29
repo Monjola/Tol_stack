@@ -43,7 +43,8 @@ export function calculateStack() {
   const range6 = 6 * stackSigma;
 
   // Always show stack mean
-  document.getElementById("stat-mean").textContent = stackMean.toFixed(3);
+  const statMeanElement = document.getElementById("stat-mean");
+  statMeanElement.textContent = stackMean.toFixed(3);
   
   // Show analysis setup values
   const nominalTarget = analysisSetup.criticalRequirement.nominalTarget;
@@ -92,6 +93,31 @@ export function calculateStack() {
   } else {
     if (uslCard) uslCard.style.display = 'none';
     if (specToleranceCard) specToleranceCard.style.display = 'none';
+  }
+  
+  // Color code stack mean based on nominal target and spec limits
+  // Remove any existing color classes
+  statMeanElement.classList.remove('stat-mean-yellow', 'stat-mean-red');
+  
+  // Check if stack mean is outside spec limits (highest priority - red)
+  if (lsl !== null && lsl !== undefined && usl !== null && usl !== undefined) {
+    if (stackMean < lsl || stackMean > usl) {
+      statMeanElement.classList.add('stat-mean-red');
+    }
+    // Check if stack mean differs from nominal target (yellow, but only if not red)
+    else if (nominalTarget !== null && nominalTarget !== undefined) {
+      const tolerance = 0.0001; // Small tolerance for floating point comparison
+      if (Math.abs(stackMean - nominalTarget) > tolerance) {
+        statMeanElement.classList.add('stat-mean-yellow');
+      }
+    }
+  }
+  // If no spec limits, just check against nominal target
+  else if (nominalTarget !== null && nominalTarget !== undefined) {
+    const tolerance = 0.0001; // Small tolerance for floating point comparison
+    if (Math.abs(stackMean - nominalTarget) > tolerance) {
+      statMeanElement.classList.add('stat-mean-yellow');
+    }
   }
   
   // Calculate achieved Cpk if in advanced mode and we have spec limits
