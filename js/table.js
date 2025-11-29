@@ -1,4 +1,5 @@
 import { stackData } from './data.js';
+import { settings } from './data.js';
 import { calculateStack } from './dashboard.js';
 
 // Table management functions
@@ -8,9 +9,9 @@ export function setupTable() {
       description: "",
       nominal: 0,
       tol: 0,
-      tolType: "Linear",
-      cpk: 1.33,
-      floatShifted: false,
+      tolType: "Linear", // Default, but hidden in simple mode
+      cpk: 1.33, // Default, but hidden in simple mode
+      floatShifted: false, // Default, but hidden in simple mode
     });
     renderTable();
   });
@@ -27,20 +28,32 @@ export function renderTable() {
     tr.dataset.index = index;
     tr.classList.add("draggable-row");
     
-    tr.innerHTML = `
-      <td class="drag-handle" title="Drag to reorder">⋮⋮</td>
-      <td><input type="text" data-key="description" data-index="${index}" value="${row.description ?? ""}"></td>
-      <td><input type="number" step="0.001" data-key="nominal" data-index="${index}" value="${row.nominal ?? 0}"></td>
-      <td>
+    const toleranceTypeCell = settings.showToleranceType ? `
+      <td class="advanced-col tolerance-type-col">
         <select data-key="tolType" data-index="${index}">
           <option ${row.tolType === "Linear" ? "selected" : ""}>Linear</option>
           <option ${row.tolType === "GD&T" ? "selected" : ""}>GD&T</option>
           <option ${row.tolType === "Float" ? "selected" : ""}>Float</option>
         </select>
       </td>
+    ` : '';
+    
+    const cpkCell = settings.advancedStatisticalMode ? `
+      <td class="advanced-col cpk-col"><input type="number" step="0.01" data-key="cpk" data-index="${index}" value="${row.cpk ?? 1.33}"></td>
+    ` : '';
+    
+    const floatCell = settings.showFloatShifted ? `
+      <td class="advanced-col float-col" style="text-align:center;"><input type="checkbox" data-key="floatShifted" data-index="${index}" ${row.floatShifted ? "checked" : ""}></td>
+    ` : '';
+    
+    tr.innerHTML = `
+      <td class="drag-handle" title="Drag to reorder">⋮⋮</td>
+      <td><input type="text" data-key="description" data-index="${index}" value="${row.description ?? ""}"></td>
+      <td><input type="number" step="0.001" data-key="nominal" data-index="${index}" value="${row.nominal ?? 0}"></td>
+      ${toleranceTypeCell}
       <td><input type="text" data-key="tol" data-index="${index}" value="${row.tol ?? 0}"></td>
-      <td><input type="number" step="0.01" data-key="cpk" data-index="${index}" value="${row.cpk ?? 1.33}"></td>
-      <td style="text-align:center;"><input type="checkbox" data-key="floatShifted" data-index="${index}" ${row.floatShifted ? "checked" : ""}></td>
+      ${cpkCell}
+      ${floatCell}
       <td class="row-actions">
         <button class="action-btn delete" data-index="${index}" title="Delete row">×</button>
       </td>
@@ -63,6 +76,42 @@ export function renderTable() {
   
   // Set up drag and drop
   setupDragAndDrop(tbody);
+  
+  // Update column visibility based on settings
+  updateColumnVisibility();
+}
+
+function updateColumnVisibility() {
+  const thead = document.querySelector('thead tr');
+  const rows = document.querySelectorAll('tbody tr');
+  
+  // Update header visibility
+  thead.querySelectorAll('.tolerance-type-col').forEach(col => {
+    col.style.display = settings.showToleranceType ? '' : 'none';
+  });
+  thead.querySelectorAll('.cpk-col').forEach(col => {
+    col.style.display = settings.advancedStatisticalMode ? '' : 'none';
+  });
+  thead.querySelectorAll('.float-col').forEach(col => {
+    col.style.display = settings.showFloatShifted ? '' : 'none';
+  });
+  
+  // Update row cell visibility
+  rows.forEach(row => {
+    row.querySelectorAll('.tolerance-type-col').forEach(cell => {
+      cell.style.display = settings.showToleranceType ? '' : 'none';
+    });
+    row.querySelectorAll('.cpk-col').forEach(cell => {
+      cell.style.display = settings.advancedStatisticalMode ? '' : 'none';
+    });
+    row.querySelectorAll('.float-col').forEach(cell => {
+      cell.style.display = settings.showFloatShifted ? '' : 'none';
+    });
+  });
+}
+
+export function refreshTable() {
+  renderTable();
 }
 
 function setupDragAndDrop(tbody) {

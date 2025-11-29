@@ -28,6 +28,8 @@ export function calculateStack() {
   const rssValue = Math.sqrt(rss);
   const stackSigma = Math.sqrt(stackVariance);
   const range3 = 3 * stackSigma;
+  const range4 = 4 * stackSigma;
+  const range5 = 5 * stackSigma;
   const range6 = 6 * stackSigma;
 
   // Always show stack mean
@@ -39,6 +41,8 @@ export function calculateStack() {
   const rssCard = document.getElementById("stat-rss-card");
   const sigmaCard = document.getElementById("stat-sigma-card");
   const sigma3Card = document.getElementById("stat-3sigma-card");
+  const sigma4Card = document.getElementById("stat-4sigma-card");
+  const sigma5Card = document.getElementById("stat-5sigma-card");
   const sigma6Card = document.getElementById("stat-6sigma-card");
   
   if (showAdvanced) {
@@ -48,9 +52,13 @@ export function calculateStack() {
     
     document.getElementById("stat-sigma").textContent = `±${stackSigma.toFixed(3)}`;
     document.getElementById("stat-3sigma").textContent = `±${range3.toFixed(3)}`;
+    document.getElementById("stat-4sigma").textContent = `±${range4.toFixed(3)}`;
+    document.getElementById("stat-5sigma").textContent = `±${range5.toFixed(3)}`;
     document.getElementById("stat-6sigma").textContent = `±${range6.toFixed(3)}`;
     if (sigmaCard) sigmaCard.style.display = '';
     if (sigma3Card) sigma3Card.style.display = '';
+    if (sigma4Card) sigma4Card.style.display = '';
+    if (sigma5Card) sigma5Card.style.display = '';
     if (sigma6Card) sigma6Card.style.display = '';
   } else {
     // Show basic stats, hide advanced stats
@@ -61,6 +69,8 @@ export function calculateStack() {
     
     if (sigmaCard) sigmaCard.style.display = 'none';
     if (sigma3Card) sigma3Card.style.display = 'none';
+    if (sigma4Card) sigma4Card.style.display = 'none';
+    if (sigma5Card) sigma5Card.style.display = 'none';
     if (sigma6Card) sigma6Card.style.display = 'none';
   }
 

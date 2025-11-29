@@ -22,3 +22,10 @@ export const state = {
   previewEnd: null,
 };
 
+// Settings for advanced features
+export const settings = {
+  advancedStatisticalMode: false, // Combines Cpk input and statistical output
+  showFloatShifted: false,
+  showToleranceType: false,
+};
+

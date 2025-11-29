@@ -477,6 +477,36 @@ dialog input {
   color: var(--text);
 }
 
+.settings-group {
+  margin-bottom: 1.5rem;
+}
+
+.settings-group h4 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1rem;
+  color: var(--text);
+}
+
+.setting-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0;
+  cursor: pointer;
+  user-select: none;
+}
+
+.setting-toggle input[type="checkbox"] {
+  width: auto;
+  accent-color: var(--accent);
+  cursor: pointer;
+}
+
+.setting-toggle span {
+  color: var(--text);
+  font-size: 0.9rem;
+}
+
 @media (max-width: 1200px) {
   table {
     min-width: 100%;

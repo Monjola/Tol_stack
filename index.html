@@ -9,7 +9,7 @@
   <body>
     <header>
       <h1>StackMaster · Tolerance Analysis</h1>
-      <button id="open-gdt-dialog" class="secondary">GD&amp;T Wizard</button>
+      <button id="open-settings-dialog" class="secondary">Settings</button>
     </header>
 
     <main>
@@ -35,10 +35,10 @@
                 <th style="width: 40px;"></th>
                 <th>Description</th>
                 <th>Nominal</th>
-                <th>Tolerance Type</th>
+                <th class="advanced-col tolerance-type-col" style="display: none;">Tolerance Type</th>
                 <th>Tol (+/-)</th>
-                <th>Cpk</th>
-                <th>Float Shifted</th>
+                <th class="advanced-col cpk-col" style="display: none;">Cpk</th>
+                <th class="advanced-col float-col" style="display: none;">Float Shifted</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -57,17 +57,33 @@
             <span class="stat-label">Stack Mean</span>
             <span class="stat-value" id="stat-mean">0.000</span>
           </div>
-          <div class="stat-card">
-            <span class="stat-label">Stack Sigma</span>
-            <span class="stat-value" id="stat-sigma">0.000</span>
+          <div class="stat-card basic-stat" id="stat-worst-case-card">
+            <span class="stat-label">Worst Case</span>
+            <span class="stat-value" id="stat-worst-case">±0.000</span>
           </div>
-          <div class="stat-card">
-            <span class="stat-label">3σ Range</span>
-            <span class="stat-value" id="stat-3sigma">0.000</span>
+          <div class="stat-card basic-stat" id="stat-rss-card">
+            <span class="stat-label">RSS</span>
+            <span class="stat-value" id="stat-rss">±0.000</span>
           </div>
-          <div class="stat-card">
-            <span class="stat-label">6σ Range</span>
-            <span class="stat-value" id="stat-6sigma">0.000</span>
+          <div class="stat-card advanced-stat" id="stat-sigma-card" style="display: none;">
+            <span class="stat-label">Standard Deviation</span>
+            <span class="stat-value" id="stat-sigma">±0.000</span>
+          </div>
+          <div class="stat-card advanced-stat" id="stat-3sigma-card" style="display: none;">
+            <span class="stat-label">Process Range (3 standard deviations, Cpk=1)</span>
+            <span class="stat-value" id="stat-3sigma">±0.000</span>
+          </div>
+          <div class="stat-card advanced-stat" id="stat-4sigma-card" style="display: none;">
+            <span class="stat-label">4 standard deviations, Cpk=1.33</span>
+            <span class="stat-value" id="stat-4sigma">±0.000</span>
+          </div>
+          <div class="stat-card advanced-stat" id="stat-5sigma-card" style="display: none;">
+            <span class="stat-label">5 standard deviations, Cpk=1.67</span>
+            <span class="stat-value" id="stat-5sigma">±0.000</span>
+          </div>
+          <div class="stat-card advanced-stat" id="stat-6sigma-card" style="display: none;">
+            <span class="stat-label">+/-6 standard deviations, Cpk=2</span>
+            <span class="stat-value" id="stat-6sigma">±0.000</span>
           </div>
         </div>
         <h3>Pareto Contributions</h3>
@@ -83,25 +99,24 @@
       </section>
     </main>
 
-    <dialog id="gdt-dialog">
+    <dialog id="settings-dialog">
       <form method="dialog">
-        <h3>GD&amp;T Position @ MMC</h3>
-        <label>
-          Nominal
-          <input type="number" step="0.001" id="gdt-nominal" />
-        </label>
-        <label>
-          Tolerance
-          <input type="number" step="0.001" id="gdt-tolerance" />
-        </label>
-        <label>
-          Hole Max
-          <input type="number" step="0.001" id="gdt-hole-max" />
-        </label>
-        <label>
-          Hole Min
-          <input type="number" step="0.001" id="gdt-hole-min" />
-        </label>
+        <h3>Settings</h3>
+        <div class="settings-group">
+          <h4>Advanced Features</h4>
+          <label class="setting-toggle">
+            <input type="checkbox" id="setting-advanced-statistical-mode" />
+            <span>Advanced statistical mode using expected Cpk values</span>
+          </label>
+          <label class="setting-toggle">
+            <input type="checkbox" id="setting-tolerance-type" />
+            <span>Show Tolerance Type (Linear/GD&T/Float)</span>
+          </label>
+          <label class="setting-toggle">
+            <input type="checkbox" id="setting-float-shifted" />
+            <span>Show Float Shifted</span>
+          </label>
+        </div>
         <div class="table-actions">
           <button value="cancel" class="secondary">Close</button>
         </div>
