@@ -8,6 +8,7 @@ export function setupTable() {
     stackData.push({
       description: "",
       nominal: 0,
+      direction: "+", // Default direction
       tol: 0,
       tolType: "Linear", // Default, but hidden in simple mode
       cpk: 1.33, // Default, but hidden in simple mode
@@ -50,6 +51,12 @@ export function renderTable() {
       <td class="drag-handle" title="Drag to reorder">⋮⋮</td>
       <td><input type="text" data-key="description" data-index="${index}" value="${row.description ?? ""}"></td>
       <td><input type="number" step="0.001" data-key="nominal" data-index="${index}" value="${row.nominal ?? 0}"></td>
+      <td>
+        <select data-key="direction" data-index="${index}">
+          <option value="+" ${row.direction === "+" ? "selected" : ""}>+</option>
+          <option value="-" ${row.direction === "-" ? "selected" : ""}>-</option>
+        </select>
+      </td>
       ${toleranceTypeCell}
       <td><input type="text" data-key="tol" data-index="${index}" value="${row.tol ?? 0}"></td>
       ${cpkCell}

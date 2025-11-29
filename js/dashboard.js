@@ -13,8 +13,9 @@ export function calculateStack() {
 
   stackData.forEach((row) => {
     const { nominalAdj, tolAdj } = parseAsymmetry(row.tol, row.nominal);
-    stackMean += nominalAdj;
-    worstCase += tolAdj; // Worst case is sum of all tolerances
+    const direction = row.direction === "-" ? -1 : 1; // Multiply by -1 if direction is "-"
+    stackMean += nominalAdj * direction;
+    worstCase += tolAdj; // Worst case is sum of all tolerances (always positive)
     
     // RSS (Root Sum Square)
     rss += tolAdj ** 2;
