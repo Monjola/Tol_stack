@@ -43,6 +43,7 @@
                 <th class="advanced-col cpk-col" style="display: none;">Cpk</th>
                 <th class="advanced-col float-col" style="display: none;">Float Shifted</th>
                 <th style="width: 60px;">Notes</th>
+                <th style="width: 60px;">Source</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -135,6 +136,32 @@
         </label>
         <div class="table-actions">
           <button type="button" id="notes-ok-btn">OK</button>
+          <button value="cancel" class="secondary">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="source-dialog">
+      <form method="dialog">
+        <h3>Source Image</h3>
+        <div class="source-container">
+          <div class="source-upload-area" id="source-upload-area">
+            <input type="file" id="source-file-input" accept="image/*" style="display: none;">
+            <div class="upload-placeholder" id="upload-placeholder">
+              <p>Drop image here, paste from clipboard, or click to upload</p>
+              <button type="button" class="secondary" id="source-upload-btn">Choose File</button>
+            </div>
+            <div class="source-image-wrapper" id="source-image-wrapper" style="display: none;">
+              <img id="source-image" alt="Source image">
+              <canvas id="source-canvas"></canvas>
+            </div>
+          </div>
+          <div class="source-actions">
+            <button type="button" class="secondary" id="source-remove-btn" style="display: none;">Remove Image</button>
+          </div>
+        </div>
+        <div class="table-actions">
+          <button type="button" id="source-ok-btn">OK</button>
           <button value="cancel" class="secondary">Cancel</button>
         </div>
       </form>

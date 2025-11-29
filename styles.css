@@ -278,6 +278,107 @@ tbody input[type="checkbox"] {
   z-index: 1;
 }
 
+.source-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 150ms ease;
+  min-width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  line-height: 1;
+}
+
+.source-btn:hover {
+  background: var(--bg-alt);
+  border-color: var(--accent);
+}
+
+.source-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.source-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: var(--danger);
+  border-radius: 50%;
+  border: 1px solid var(--card);
+  z-index: 1;
+}
+
+.source-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.source-upload-area {
+  border: 2px dashed var(--border);
+  border-radius: 0.5rem;
+  padding: 2rem;
+  text-align: center;
+  transition: all 150ms ease;
+  min-height: 300px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.source-upload-area.drag-over {
+  border-color: var(--accent);
+  background: rgba(88, 166, 255, 0.1);
+}
+
+.upload-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+  color: var(--muted);
+}
+
+.source-image-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.source-image-wrapper img {
+  max-width: 100%;
+  max-height: 500px;
+  object-fit: contain;
+  display: block;
+}
+
+#source-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  cursor: crosshair;
+  pointer-events: auto;
+  image-rendering: pixelated;
+}
+
+.source-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
 .table-actions {
   display: flex;
   justify-content: flex-end;
