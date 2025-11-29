@@ -238,6 +238,46 @@ tbody input[type="checkbox"] {
   font-size: 0.9rem;
 }
 
+.notes-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 150ms ease;
+  min-width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  line-height: 1;
+}
+
+.notes-btn:hover {
+  background: var(--bg-alt);
+  border-color: var(--accent);
+}
+
+.notes-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.notes-indicator {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  width: 8px;
+  height: 8px;
+  background: var(--danger);
+  border-radius: 50%;
+  border: 1px solid var(--card);
+  z-index: 1;
+}
+
 .table-actions {
   display: flex;
   justify-content: flex-end;
@@ -580,13 +620,20 @@ dialog form {
   gap: 0.75rem;
 }
 
-dialog input {
+dialog input,
+dialog textarea {
   width: 100%;
   padding: 0.5rem;
   border-radius: 0.5rem;
   border: 1px solid var(--border);
   background: var(--bg-alt);
   color: var(--text);
+  font-family: inherit;
+  resize: vertical;
+}
+
+dialog textarea {
+  min-height: 120px;
 }
 
 .settings-group {

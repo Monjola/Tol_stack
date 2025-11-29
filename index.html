@@ -42,6 +42,7 @@
                 <th>Tol (+/-)</th>
                 <th class="advanced-col cpk-col" style="display: none;">Cpk</th>
                 <th class="advanced-col float-col" style="display: none;">Float Shifted</th>
+                <th style="width: 60px;">Notes</th>
                 <th>Actions</th>
               </tr>
             </thead>
@@ -122,6 +123,19 @@
         </div>
         <div class="table-actions">
           <button value="cancel" class="secondary">Close</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="notes-dialog">
+      <form method="dialog">
+        <h3>Notes</h3>
+        <label>
+          <textarea id="notes-textarea" rows="8" placeholder="Enter notes here..."></textarea>
+        </label>
+        <div class="table-actions">
+          <button type="button" id="notes-ok-btn">OK</button>
+          <button value="cancel" class="secondary">Cancel</button>
         </div>
       </form>
     </dialog>

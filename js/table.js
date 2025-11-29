@@ -14,10 +14,12 @@ export function setupTable() {
       tolType: "Linear", // Default, but hidden in simple mode
       cpk: 1.33, // Default, but hidden in simple mode
       floatShifted: false, // Default, but hidden in simple mode
+      notes: "", // Empty notes for new rows
     });
     renderTable();
   });
   renderTable();
+  setupNotesDialogs();
 }
 
 export function renderTable() {
@@ -66,6 +68,12 @@ export function renderTable() {
       <td><input type="text" data-key="tol" data-index="${index}" value="${row.tol ?? 0}"></td>
       ${cpkCell}
       ${floatCell}
+      <td style="text-align: center;">
+        <button class="notes-btn" data-index="${index}" title="Notes">
+          <span class="notes-icon">📝</span>
+          ${row.notes && row.notes.trim() ? '<span class="notes-indicator"></span>' : ''}
+        </button>
+      </td>
       <td class="row-actions">
         <button class="action-btn delete" data-index="${index}" title="Delete row">×</button>
       </td>
@@ -83,6 +91,15 @@ export function renderTable() {
       e.stopPropagation();
       const index = parseInt(e.target.dataset.index);
       deleteRow(index);
+    });
+  });
+  
+  // Add event listeners for notes buttons
+  tbody.querySelectorAll(".notes-btn").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const index = parseInt(btn.dataset.index);
+      openNotesDialog(index);
     });
   });
   
@@ -239,5 +256,40 @@ function handleCellInput(event) {
   }
 
   calculateStack();
+}
+
+let currentNotesIndex = null;
+
+function setupNotesDialogs() {
+  const dialog = document.getElementById("notes-dialog");
+  const okBtn = document.getElementById("notes-ok-btn");
+  
+  if (!dialog || !okBtn) return;
+  
+  okBtn.addEventListener("click", () => {
+    if (currentNotesIndex !== null) {
+      const textarea = document.getElementById("notes-textarea");
+      stackData[currentNotesIndex].notes = textarea.value;
+      renderTable();
+      dialog.close();
+      currentNotesIndex = null;
+    }
+  });
+  
+  // Reset state when dialog is closed (via Cancel or clicking outside)
+  dialog.addEventListener("close", () => {
+    currentNotesIndex = null;
+  });
+}
+
+function openNotesDialog(index) {
+  const dialog = document.getElementById("notes-dialog");
+  const textarea = document.getElementById("notes-textarea");
+  
+  if (!dialog || !textarea) return;
+  
+  currentNotesIndex = index;
+  textarea.value = stackData[index].notes || "";
+  dialog.showModal();
 }
 
