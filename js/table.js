@@ -6,6 +6,7 @@ import { calculateStack } from './dashboard.js';
 export function setupTable() {
   document.getElementById("add-row").addEventListener("click", () => {
     stackData.push({
+      partNr: "", // Empty part number for new rows
       description: "",
       nominal: 0,
       direction: "+", // Default direction
@@ -52,6 +53,7 @@ export function renderTable() {
     tr.innerHTML = `
       <td class="drag-handle" title="Drag to reorder">⋮⋮</td>
       <td class="item-number" style="text-align: center; color: var(--muted);">${index + 1}</td>
+      <td><input type="text" data-key="partNr" data-index="${index}" value="${row.partNr ?? ""}" placeholder="Part Nr"></td>
       <td><input type="text" data-key="description" data-index="${index}" value="${row.description ?? ""}"></td>
       <td><input type="number" step="0.001" data-key="nominal" data-index="${index}" value="${row.nominal ?? 0}"></td>
       <td style="min-width: 80px;">
