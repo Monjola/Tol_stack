@@ -35,7 +35,7 @@ export function setupSaveLoad() {
           const data = JSON.parse(event.target.result);
           loadStack(data);
         } catch (error) {
-          alert("Error loading file: " + error.message);
+          console.error("Error loading file:", error);
         }
       };
       reader.readAsText(file);
@@ -46,7 +46,7 @@ export function setupSaveLoad() {
   }
 }
 
-function saveStack() {
+async function saveStack() {
   try {
     console.log("saveStack called");
     
@@ -73,18 +73,46 @@ function saveStack() {
     // Convert to JSON
     const json = JSON.stringify(saveData, null, 2);
     
-    // Create blob and download
-    const blob = new Blob([json], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.style.display = "none";
-    
     // Generate filename from analysis title or timestamp
     const title = analysisSetup.metadata.title || "stack";
     const sanitizedTitle = title.replace(/[^a-z0-9]/gi, "_").toLowerCase() || "stack";
     const dateStr = new Date().toISOString().split('T')[0];
     const filename = `${sanitizedTitle}_${dateStr}.json`;
+    
+    // Try to use File System Access API (shows native save dialog)
+    if ('showSaveFilePicker' in window) {
+      try {
+        const fileHandle = await window.showSaveFilePicker({
+          suggestedName: filename,
+          types: [{
+            description: 'JSON files',
+            accept: { 'application/json': ['.json'] }
+          }]
+        });
+        
+        const writable = await fileHandle.createWritable();
+        await writable.write(json);
+        await writable.close();
+        
+        return;
+      } catch (error) {
+        // User cancelled the dialog or error occurred
+        if (error.name !== 'AbortError') {
+          console.error("File System Access API error:", error);
+          // Fall through to fallback method
+        } else {
+          // User cancelled, just return
+          return;
+        }
+      }
+    }
+    
+    // Fallback: Use download method (saves to Downloads folder)
+    const blob = new Blob([json], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.style.display = "none";
     a.download = filename;
     
     console.log("Downloading file:", filename);
@@ -97,9 +125,6 @@ function saveStack() {
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
     }, 100);
-    
-    // Show success message with location info
-    alert(`Stack saved as "${filename}"\n\nCheck your Downloads folder. If you want to choose the save location, enable "Ask where to save each file before downloading" in your browser settings.`);
   } catch (error) {
     console.error("Error saving stack:", error);
     alert("Error saving stack: " + error.message + "\n\nCheck the browser console for details.");
@@ -109,7 +134,7 @@ function saveStack() {
 function loadStack(data) {
   // Validate data structure
   if (!data || typeof data !== "object") {
-    alert("Invalid file format");
+    console.error("Invalid file format");
     return;
   }
 
@@ -194,10 +219,8 @@ function loadStack(data) {
     if (typeof refreshTable === 'function') {
       refreshTable();
     }
-
-    alert("Stack loaded successfully!");
   } catch (error) {
-    alert("Error loading stack: " + error.message);
+    console.error("Error loading stack:", error);
   }
 }
 
