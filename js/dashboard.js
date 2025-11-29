@@ -85,12 +85,8 @@ function renderPareto(totalVariance) {
   const barsWrap = document.createElement("div");
   barsWrap.className = "pareto-bars";
 
-  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
-  svg.setAttribute("viewBox", "0 0 100 100");
-  svg.classList.add("cumulative-line");
-
   let cumulative = 0;
-  const points = [];
+  const barHeight = 220; // Match CSS height
 
   sorted.forEach((entry, index) => {
     const wrapper = document.createElement("div");
@@ -101,7 +97,11 @@ function renderPareto(totalVariance) {
 
     const fill = document.createElement("div");
     fill.className = "bar-fill";
-    fill.style.height = `${Math.min(entry.percent, 100)}%`;
+    const percentHeight = Math.min(entry.percent, 100);
+    // Calculate actual pixel height (bar container is 220px tall)
+    const pixelHeight = (percentHeight / 100) * 220;
+    fill.style.height = `${pixelHeight}px`;
+    fill.style.minHeight = percentHeight > 0 ? '4px' : '0';
     fill.style.background = entry.percent > 40 ? "var(--danger)" : "var(--accent)";
 
     const valueLabel = document.createElement("div");
@@ -111,23 +111,51 @@ function renderPareto(totalVariance) {
     bar.appendChild(fill);
     wrapper.append(bar, valueLabel);
     barsWrap.appendChild(wrapper);
-
-    cumulative += entry.percent;
-    const x = sorted.length === 1 ? 100 : (index / (sorted.length - 1)) * 100;
-    const y = Math.max(0, 100 - Math.min(cumulative, 100));
-    points.push(`${x},${y}`);
-
-    const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-    dot.setAttribute("cx", x);
-    dot.setAttribute("cy", y);
-    dot.setAttribute("r", 1.5);
-    svg.appendChild(dot);
   });
 
-  const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
-  polyline.setAttribute("points", points.join(" "));
-  svg.insertBefore(polyline, svg.firstChild);
+  // Append bars first so we can measure their actual positions
+  container.appendChild(barsWrap);
 
-  container.append(barsWrap, svg);
+  // Use requestAnimationFrame to ensure layout is complete
+  requestAnimationFrame(() => {
+    const barsWidth = barsWrap.offsetWidth;
+    const barContainers = barsWrap.querySelectorAll('.bar-container');
+    const points = [];
+    cumulative = 0;
+
+    sorted.forEach((entry, index) => {
+      cumulative += entry.percent;
+      const barContainer = barContainers[index];
+      const barRect = barContainer.querySelector('.bar').getBoundingClientRect();
+      const barsRect = barsWrap.getBoundingClientRect();
+      const x = barRect.left - barsRect.left + (barRect.width / 2);
+      const y = barHeight - (cumulative / 100 * barHeight);
+      points.push(`${x},${y}`);
+    });
+
+    // Create SVG with actual dimensions
+    const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+    svg.classList.add("cumulative-line");
+    svg.setAttribute("width", barsWidth);
+    svg.setAttribute("height", barHeight);
+    svg.setAttribute("viewBox", `0 0 ${barsWidth} ${barHeight}`);
+
+    const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+    polyline.setAttribute("points", points.join(" "));
+    polyline.setAttribute("stroke-width", "1.5");
+    svg.appendChild(polyline);
+
+    // Add dots
+    points.forEach((point) => {
+      const [x, y] = point.split(",").map(Number);
+      const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+      dot.setAttribute("cx", x);
+      dot.setAttribute("cy", y);
+      dot.setAttribute("r", "3");
+      svg.appendChild(dot);
+    });
+
+    container.appendChild(svg);
+  });
 }
 
