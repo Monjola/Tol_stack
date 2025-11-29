@@ -253,6 +253,12 @@
               <li><a href="#help-statistical" class="toc-link">Statistical Analysis</a></li>
               <li><a href="#help-pareto" class="toc-link">Pareto Chart</a></li>
               <li><a href="#help-direction" class="toc-link">Direction (+/-)</a></li>
+              <li><a href="#help-non-centered" class="toc-link">Non-Centered Tolerances</a></li>
+              <li><a href="#help-gdt" class="toc-link">GD&T Overview</a></li>
+              <li><a href="#help-positional" class="toc-link">Positional Tolerance</a></li>
+              <li><a href="#help-profile" class="toc-link">Surface Profile</a></li>
+              <li><a href="#help-mmc" class="toc-link">MMC (Maximum Material Condition)</a></li>
+              <li><a href="#help-datum-shift" class="toc-link">Datum Shift</a></li>
               <li><a href="#help-using" class="toc-link">Using the Tool</a></li>
             </ul>
           </div>
@@ -379,6 +385,232 @@
                 <li>Base plate thickness: <strong>+</strong> (adds to height)</li>
                 <li>Spacer block: <strong>+</strong> (adds to height)</li>
                 <li>Clearance gap: <strong>-</strong> (reduces effective height)</li>
+              </ul>
+            </section>
+
+            <section id="help-non-centered" class="help-section">
+              <h2>Non-Centered Tolerances</h2>
+              <p>Many manufacturing tolerances are not centered on the nominal value. Before entering a tolerance into the sheet, you may need to convert it to a centered ± tolerance format.</p>
+              <h3>Understanding Non-Centered Tolerances</h3>
+              <p>Non-centered tolerances are specified as asymmetric limits, such as:</p>
+              <ul>
+                <li><strong>25.0 +0.2 / -0.1</strong> (upper limit: 25.2, lower limit: 24.9)</li>
+                <li><strong>12.5 +0.05 / -0.15</strong> (upper limit: 12.55, lower limit: 12.35)</li>
+                <li><strong>10.0 +0.1 / +0.0</strong> (upper limit: 10.1, lower limit: 10.0)</li>
+              </ul>
+              <h3>Converting to Centered Tolerance</h3>
+              <p>To convert a non-centered tolerance to a centered ± format:</p>
+              <ol>
+                <li><strong>Calculate the mean</strong>: Mean = (Upper Limit + Lower Limit) / 2</li>
+                <li><strong>Calculate the tolerance</strong>: Tolerance = (Upper Limit - Lower Limit) / 2</li>
+                <li><strong>Enter the mean as Nominal</strong>: Use the calculated mean value</li>
+                <li><strong>Enter the tolerance</strong>: Use the calculated tolerance value</li>
+              </ol>
+              <h3>Example Conversion</h3>
+              <p><strong>Original specification:</strong> 25.0 +0.2 / -0.1</p>
+              <ul>
+                <li>Upper Limit = 25.0 + 0.2 = 25.2</li>
+                <li>Lower Limit = 25.0 - 0.1 = 24.9</li>
+                <li>Mean = (25.2 + 24.9) / 2 = 25.05</li>
+                <li>Tolerance = (25.2 - 24.9) / 2 = 0.15</li>
+              </ul>
+              <p><strong>Enter in sheet:</strong></p>
+              <ul>
+                <li>Nominal: <strong>25.05</strong></li>
+                <li>Tolerance: <strong>±0.15</strong></li>
+              </ul>
+              <h3>Important Notes</h3>
+              <ul>
+                <li>This conversion maintains the same tolerance zone but centers it on the mean</li>
+                <li>The original limits (25.2 and 24.9) are still respected in the analysis</li>
+                <li>For worst case analysis, this conversion is exact</li>
+                <li>For statistical analysis, ensure the process is centered on the new nominal</li>
+              </ul>
+            </section>
+
+            <section id="help-gdt" class="help-section">
+              <h2>GD&T (Geometric Dimensioning and Tolerancing)</h2>
+              <p><strong>GD&T</strong> is a symbolic language used to specify the geometric characteristics of parts. Unlike linear tolerances, GD&T controls form, orientation, location, and runout.</p>
+              <h3>When to Use GD&T</h3>
+              <ul>
+                <li>When functional requirements need to be specified</li>
+                <li>For features that must mate or assemble with other parts</li>
+                <li>When you need to control form, orientation, or location</li>
+                <li>To allow additional tolerance through MMC or LMC modifiers</li>
+              </ul>
+              <h3>Common GD&T Symbols</h3>
+              <ul>
+                <li><strong>Position</strong> (⌖): Controls the location of features</li>
+                <li><strong>Profile</strong> (⌓): Controls the shape of surfaces</li>
+                <li><strong>Flatness</strong>: Controls how flat a surface is</li>
+                <li><strong>Perpendicularity</strong> (⊥): Controls 90° relationships</li>
+                <li><strong>Parallelism</strong> (∥): Controls parallel relationships</li>
+              </ul>
+              <h3>Entering GD&T in the Tool</h3>
+              <p>When entering GD&T tolerances:</p>
+              <ol>
+                <li>Select <strong>"GD&T"</strong> as the Tolerance Type (when advanced mode is enabled)</li>
+                <li>Enter the tolerance value as specified on the drawing</li>
+                <li>Consider MMC/LMC modifiers if applicable (see MMC section)</li>
+                <li>Account for datum shift if multiple datums are used (see Datum Shift section)</li>
+              </ol>
+            </section>
+
+            <section id="help-positional" class="help-section">
+              <h2>Positional Tolerance</h2>
+              <p><strong>Positional tolerance</strong> (⌖) controls the location of features relative to datums. It's one of the most commonly used GD&T controls.</p>
+              <h3>Understanding Positional Tolerance</h3>
+              <p>Positional tolerance creates a cylindrical or spherical tolerance zone within which the center point or axis of a feature must lie.</p>
+              <h3>Entering Positional Tolerance</h3>
+              <p><strong>Step 1: Identify the tolerance value</strong></p>
+              <p>Find the positional tolerance value on the drawing (e.g., ⌖ 0.1). This is the diameter of the tolerance zone.</p>
+              <p><strong>Step 2: Determine the contribution to stack</strong></p>
+              <p>For tolerance stack-up analysis, positional tolerance contributes as:</p>
+              <p class="formula">Contribution = Positional Tolerance / 2</p>
+              <p>This converts the diameter tolerance zone to a radius contribution.</p>
+              <p><strong>Step 3: Enter in the tool</strong></p>
+              <ul>
+                <li>Nominal: Enter the basic dimension or target location</li>
+                <li>Tolerance: Enter <strong>half</strong> of the positional tolerance value</li>
+                <li>Tolerance Type: Select <strong>"GD&T"</strong></li>
+              </ul>
+              <h3>Example</h3>
+              <p><strong>Drawing callout:</strong> ⌖ 0.2 (positional tolerance of 0.2)</p>
+              <p><strong>Enter in sheet:</strong></p>
+              <ul>
+                <li>Nominal: <strong>25.0</strong> (basic dimension)</li>
+                <li>Tolerance: <strong>±0.1</strong> (0.2 / 2 = 0.1)</li>
+                <li>Tolerance Type: <strong>GD&T</strong></li>
+              </ul>
+              <h3>With MMC Modifier</h3>
+              <p>If the positional tolerance includes an MMC modifier (⌖ 0.2 Ⓜ), see the MMC section for how to account for the bonus tolerance.</p>
+            </section>
+
+            <section id="help-profile" class="help-section">
+              <h2>Surface Profile Tolerance</h2>
+              <p><strong>Surface profile</strong> (⌓) controls the shape of a surface relative to a true profile. It can be applied to individual line elements or the entire surface.</p>
+              <h3>Understanding Profile Tolerance</h3>
+              <p>Profile tolerance creates a bilateral zone (equal on both sides) or unilateral zone around the true profile. The tolerance value specifies the total width of the zone.</p>
+              <h3>Entering Profile Tolerance</h3>
+              <p><strong>Step 1: Identify the tolerance value</strong></p>
+              <p>Find the profile tolerance on the drawing (e.g., ⌓ 0.05). This is the total width of the tolerance zone.</p>
+              <p><strong>Step 2: Determine the contribution</strong></p>
+              <p>For bilateral profile (most common):</p>
+              <p class="formula">Contribution = Profile Tolerance / 2</p>
+              <p>For unilateral profile (specified with a leader or note):</p>
+              <p class="formula">Contribution = Profile Tolerance</p>
+              <p><strong>Step 3: Enter in the tool</strong></p>
+              <ul>
+                <li>Nominal: Enter the target dimension or profile location</li>
+                <li>Tolerance: Enter the calculated contribution value</li>
+                <li>Tolerance Type: Select <strong>"GD&T"</strong></li>
+              </ul>
+              <h3>Example - Bilateral Profile</h3>
+              <p><strong>Drawing callout:</strong> ⌓ 0.1 (bilateral profile tolerance)</p>
+              <p><strong>Enter in sheet:</strong></p>
+              <ul>
+                <li>Nominal: <strong>12.5</strong></li>
+                <li>Tolerance: <strong>±0.05</strong> (0.1 / 2 = 0.05)</li>
+                <li>Tolerance Type: <strong>GD&T</strong></li>
+              </ul>
+              <h3>Example - Unilateral Profile</h3>
+              <p><strong>Drawing callout:</strong> ⌓ 0.1 (unilateral, material outside)</p>
+              <p><strong>Enter in sheet:</strong></p>
+              <ul>
+                <li>Nominal: <strong>12.5</strong></li>
+                <li>Tolerance: <strong>±0.1</strong> (full tolerance value)</li>
+                <li>Tolerance Type: <strong>GD&T</strong></li>
+              </ul>
+            </section>
+
+            <section id="help-mmc" class="help-section">
+              <h2>MMC (Maximum Material Condition)</h2>
+              <p><strong>MMC</strong> (Ⓜ) is a material condition modifier that allows additional tolerance when a feature departs from its maximum material condition.</p>
+              <h3>Understanding MMC</h3>
+              <p><strong>Maximum Material Condition</strong> is the condition where a feature contains the maximum amount of material:</p>
+              <ul>
+                <li>For external features (shafts, pins): Largest size</li>
+                <li>For internal features (holes, slots): Smallest size</li>
+              </ul>
+              <h3>Bonus Tolerance</h3>
+              <p>When a feature is at MMC, it gets the stated tolerance. As the feature departs from MMC, it receives additional "bonus" tolerance:</p>
+              <p class="formula">Total Tolerance = Stated Tolerance + Bonus Tolerance</p>
+              <p class="formula">Bonus Tolerance = |Actual Size - MMC Size|</p>
+              <h3>Entering MMC Tolerances</h3>
+              <p><strong>Conservative Approach (Recommended for Stack Analysis)</strong></p>
+              <p>For worst-case stack analysis, use the maximum possible tolerance:</p>
+              <ol>
+                <li>Start with the stated positional/profile tolerance</li>
+                <li>Add the maximum bonus tolerance (size tolerance of the feature)</li>
+                <li>Enter this total as the tolerance value</li>
+              </ol>
+              <p><strong>Example: Positional with MMC</strong></p>
+              <p><strong>Drawing callout:</strong> ⌖ 0.1 Ⓜ (positional tolerance 0.1 at MMC)</p>
+              <p><strong>Feature size:</strong> Hole Ø10.0 +0.1 / -0.0</p>
+              <ul>
+                <li>Stated tolerance: 0.1</li>
+                <li>Size tolerance: 0.1 (maximum bonus)</li>
+                <li>Maximum total tolerance: 0.1 + 0.1 = 0.2</li>
+              </ul>
+              <p><strong>Enter in sheet:</strong></p>
+              <ul>
+                <li>Nominal: <strong>25.0</strong></li>
+                <li>Tolerance: <strong>±0.1</strong> (0.2 / 2 = 0.1, since it's a diameter)</li>
+                <li>Tolerance Type: <strong>GD&T</strong></li>
+              </ul>
+              <h3>Statistical Approach</h3>
+              <p>For statistical analysis, you may use the average bonus tolerance or the stated tolerance only, depending on your process capability data.</p>
+            </section>
+
+            <section id="help-datum-shift" class="help-section">
+              <h2>Datum Shift</h2>
+              <p><strong>Datum shift</strong> occurs when a datum feature departs from its maximum material condition, allowing the tolerance zone to shift relative to the datum.</p>
+              <h3>Understanding Datum Shift</h3>
+              <p>When a datum feature is referenced at MMC (Ⓜ), the datum itself can shift if the datum feature is not at MMC. This shift adds to the available tolerance zone.</p>
+              <h3>Calculating Datum Shift</h3>
+              <p>Datum shift is calculated as:</p>
+              <p class="formula">Datum Shift = |Datum Feature Actual Size - Datum Feature MMC Size|</p>
+              <h3>Entering Datum Shift in Stack Analysis</h3>
+              <p><strong>Step 1: Identify datum features with MMC</strong></p>
+              <p>Look for datums in the feature control frame that have the Ⓜ modifier (e.g., ⌖ 0.1 Ⓜ | A Ⓜ B Ⓜ)</p>
+              <p><strong>Step 2: Calculate shift for each datum</strong></p>
+              <p>For each datum at MMC, calculate how much it can shift based on its size tolerance.</p>
+              <p><strong>Step 3: Combine with feature tolerance</strong></p>
+              <p>The total tolerance contribution includes:</p>
+              <ul>
+                <li>Feature positional/profile tolerance</li>
+                <li>Feature bonus tolerance (if feature is at MMC)</li>
+                <li>Datum shift from all datums at MMC</li>
+              </ul>
+              <p class="formula">Total Contribution = (Feature Tolerance + Feature Bonus + Datum Shifts) / 2</p>
+              <h3>Example: Positional with Multiple Datums at MMC</h3>
+              <p><strong>Drawing callout:</strong> ⌖ 0.15 Ⓜ | A Ⓜ B Ⓜ C</p>
+              <p><strong>Feature:</strong> Hole Ø8.0 +0.05 / -0.0</p>
+              <p><strong>Datum A:</strong> Pin Ø12.0 +0.0 / -0.1</p>
+              <p><strong>Datum B:</strong> Pin Ø10.0 +0.0 / -0.08</p>
+              <p><strong>Datum C:</strong> Surface (no MMC)</p>
+              <p><strong>Calculations:</strong></p>
+              <ul>
+                <li>Feature stated tolerance: 0.15</li>
+                <li>Feature bonus (max): 0.05</li>
+                <li>Datum A shift (max): 0.1</li>
+                <li>Datum B shift (max): 0.08</li>
+                <li>Datum C shift: 0 (no MMC)</li>
+                <li>Total diameter tolerance: 0.15 + 0.05 + 0.1 + 0.08 = 0.38</li>
+                <li>Radius contribution: 0.38 / 2 = 0.19</li>
+              </ul>
+              <p><strong>Enter in sheet (worst case):</strong></p>
+              <ul>
+                <li>Nominal: <strong>25.0</strong></li>
+                <li>Tolerance: <strong>±0.19</strong></li>
+                <li>Tolerance Type: <strong>GD&T</strong></li>
+              </ul>
+              <h3>Important Notes</h3>
+              <ul>
+                <li>Datum shift only applies when the datum is referenced at MMC (Ⓜ)</li>
+                <li>For worst-case analysis, use maximum possible shifts</li>
+                <li>For statistical analysis, consider the probability of maximum shifts occurring simultaneously</li>
+                <li>Datum shifts are vector quantities - ensure proper direction in complex stacks</li>
               </ul>
             </section>
 
