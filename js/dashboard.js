@@ -120,7 +120,7 @@ function renderPareto(totalVariance) {
     return;
   }
 
-  const contributions = stackData.map((row) => {
+  const contributions = stackData.map((row, originalIndex) => {
     const { tolAdj } = parseAsymmetry(row.tol, row.nominal);
     const cpk = row.cpk || 1.33;
     const rowSigma = tolAdj / (3 * cpk || 1);
@@ -128,6 +128,7 @@ function renderPareto(totalVariance) {
     return {
       description: row.description || "Unnamed",
       percent: (variance / totalVariance) * 100 || 0,
+      originalIndex: originalIndex, // Track original position for item number
     };
   });
 
@@ -184,7 +185,10 @@ function renderPareto(totalVariance) {
     // Create label outside the chart wrapper
     const valueLabel = document.createElement("div");
     valueLabel.className = "bar-label";
-    valueLabel.textContent = `${entry.description} · ${entry.percent.toFixed(1)}%`;
+    valueLabel.dataset.fullText = `${entry.description} · ${entry.percent.toFixed(1)}%`;
+    valueLabel.dataset.itemNumber = `${entry.originalIndex + 1}`; // Use original table position
+    valueLabel.dataset.percent = entry.percent.toFixed(1);
+    valueLabel.textContent = valueLabel.dataset.fullText;
     labelsWrap.appendChild(valueLabel);
   });
   
@@ -250,6 +254,79 @@ function renderPareto(totalVariance) {
   
   // Create and render legend
   renderLegend();
+  
+  // Set up responsive label switching
+  setupResponsiveLabels(container, labelsWrap);
+  
+  // Function to update cumulative line on resize
+  const updateCumulativeLine = () => {
+    const existingSvg = barsWrap.querySelector('.cumulative-line');
+    if (existingSvg) {
+      existingSvg.remove();
+    }
+    
+    requestAnimationFrame(() => {
+      const barsWidth = barsWrap.offsetWidth;
+      const barContainers = barsWrap.querySelectorAll('.bar-container');
+      const points = [];
+      let cumulative = 0;
+
+      sorted.forEach((entry, index) => {
+        cumulative += entry.percent;
+        const barContainer = barContainers[index];
+        const barRect = barContainer.getBoundingClientRect();
+        const barsRect = barsWrap.getBoundingClientRect();
+        const x = barRect.left - barsRect.left + (barRect.width / 2);
+        const y = barHeight - (cumulative / 100 * barHeight);
+        points.push(`${x},${y}`);
+      });
+
+      // Create SVG with actual dimensions
+      const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+      svg.classList.add("cumulative-line");
+      svg.setAttribute("width", barsWidth);
+      svg.setAttribute("height", barHeight);
+      svg.setAttribute("viewBox", `0 0 ${barsWidth} ${barHeight}`);
+
+      const polyline = document.createElementNS("http://www.w3.org/2000/svg", "polyline");
+      polyline.setAttribute("points", points.join(" "));
+      polyline.setAttribute("stroke-width", "1.5");
+      svg.appendChild(polyline);
+
+      // Add dots
+      points.forEach((point) => {
+        const [x, y] = point.split(",").map(Number);
+        const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
+        dot.setAttribute("cx", x);
+        dot.setAttribute("cy", y);
+        dot.setAttribute("r", "3");
+        svg.appendChild(dot);
+      });
+
+      barsWrap.appendChild(svg);
+    });
+  };
+  
+  // Update cumulative line on window resize (debounced)
+  let resizeTimeout;
+  const handleResize = () => {
+    clearTimeout(resizeTimeout);
+    resizeTimeout = setTimeout(() => {
+      updateCumulativeLine();
+      updateLabelDisplay(container, labelsWrap);
+    }, 100);
+  };
+  
+  window.addEventListener('resize', handleResize);
+}
+
+function setupResponsiveLabels(container, labelsWrap) {
+  updateLabelDisplay(container, labelsWrap);
+}
+
+function updateLabelDisplay(container, labelsWrap) {
+  // Labels will be rotated via CSS media query, no need to change text
+  // This function is kept for potential future use
 }
 
 function renderLegend() {

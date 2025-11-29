@@ -306,13 +306,17 @@ button:hover {
   padding: 1rem;
   min-height: 320px;
   background: var(--bg-alt);
-  overflow: hidden;
+  overflow: visible;
+  display: flex;
+  flex-direction: column;
 }
 
 .pareto-chart-wrapper {
   display: flex;
   gap: 0.75rem;
   align-items: flex-end;
+  margin-bottom: 0;
+  padding-bottom: 0;
 }
 
 .pareto-y-axis {
@@ -336,16 +340,24 @@ button:hover {
 .pareto-bars {
   display: flex;
   align-items: flex-end;
-  gap: 1rem;
+  gap: 0.5rem;
   height: 220px;
   position: relative;
   z-index: 1;
   flex: 1;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+@media (max-width: 800px) {
+  .pareto-bars {
+    gap: 0.25rem;
+  }
 }
 
 .bar-container {
   flex: 1;
-  min-width: 60px;
+  min-width: 20px;
   display: flex;
   align-items: flex-end;
   justify-content: center;
@@ -390,9 +402,15 @@ button:hover {
 
 .pareto-labels {
   display: flex;
-  gap: 1rem;
+  gap: 0.5rem;
   align-items: flex-start;
   flex: 1;
+}
+
+@media (max-width: 800px) {
+  .pareto-labels {
+    gap: 0.25rem;
+  }
 }
 
 .pareto-labels .bar-label {
@@ -401,6 +419,59 @@ button:hover {
   color: var(--muted);
   text-align: center;
   min-width: 60px;
+  transition: transform 0.3s ease;
+  position: relative;
+  z-index: 10;
+}
+
+/* Rotate labels 90 degrees when narrow */
+@media (max-width: 800px) {
+  .pareto-labels .bar-label {
+    writing-mode: vertical-rl;
+    text-orientation: mixed;
+    transform: rotate(180deg);
+    white-space: nowrap;
+    min-width: auto;
+    width: auto;
+    min-width: 20px;
+    height: auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 10;
+    flex: 1;
+  }
+  
+  .pareto-labels {
+    align-items: flex-start; /* Align all labels to top */
+    position: relative;
+    z-index: 10;
+    height: auto; /* Let it size to tallest label */
+  }
+  
+  .pareto-labels-wrapper {
+    margin-top: 0.5rem; /* Small gap after chart */
+    position: relative;
+    z-index: 10;
+    height: auto; /* Size to content */
+  }
+  
+  .pareto-chart-wrapper {
+    margin-bottom: 0;
+    padding-bottom: 0;
+    position: relative;
+  }
+  
+  #pareto-chart {
+    min-height: auto; /* Let it size naturally */
+    padding-bottom: 1rem;
+  }
+  
+  .pareto-bars {
+    margin-bottom: 0;
+    padding-bottom: 0;
+  }
 }
 
 .bar-label {
@@ -415,6 +486,11 @@ button:hover {
   left: 0;
   pointer-events: none;
   z-index: 2;
+}
+
+.pareto-chart-wrapper {
+  position: relative;
+  z-index: 1;
 }
 
 .cumulative-line polyline {
