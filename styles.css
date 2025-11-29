@@ -130,6 +130,43 @@ tbody td {
   border-bottom: 1px solid rgba(48, 54, 61, 0.6);
 }
 
+.draggable-row {
+  cursor: move;
+  transition: background-color 150ms ease;
+}
+
+.draggable-row:hover {
+  background-color: rgba(88, 166, 255, 0.05);
+}
+
+.draggable-row.dragging {
+  opacity: 0.5;
+  background-color: rgba(88, 166, 255, 0.1);
+}
+
+.draggable-row.drag-over {
+  border-top: 2px solid var(--accent);
+}
+
+.drag-handle {
+  cursor: grab;
+  user-select: none;
+  text-align: center;
+  color: var(--muted);
+  font-size: 1.2rem;
+  line-height: 1;
+  padding: 0.5rem 0.25rem !important;
+  width: 40px;
+}
+
+.drag-handle:active {
+  cursor: grabbing;
+}
+
+.draggable-row.dragging .drag-handle {
+  cursor: grabbing;
+}
+
 tbody input,
 tbody select {
   width: 100%;
@@ -144,6 +181,53 @@ tbody select {
 tbody input[type="checkbox"] {
   width: auto;
   accent-color: var(--accent);
+}
+
+.row-actions {
+  display: flex;
+  gap: 0.25rem;
+  justify-content: center;
+  align-items: center;
+}
+
+.action-btn {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+  border-radius: 0.25rem;
+  padding: 0.25rem 0.5rem;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 150ms ease;
+  min-width: 28px;
+  height: 28px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.action-btn:hover:not(:disabled) {
+  background: var(--bg-alt);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.action-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.action-btn.delete:hover:not(:disabled) {
+  background: var(--danger);
+  border-color: var(--danger);
+  color: #fff;
+}
+
+.action-btn.move-up,
+.action-btn.move-down {
+  font-size: 0.9rem;
 }
 
 .table-actions {

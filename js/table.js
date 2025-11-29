@@ -23,7 +23,12 @@ export function renderTable() {
 
   stackData.forEach((row, index) => {
     const tr = document.createElement("tr");
+    tr.draggable = true;
+    tr.dataset.index = index;
+    tr.classList.add("draggable-row");
+    
     tr.innerHTML = `
+      <td class="drag-handle" title="Drag to reorder">⋮⋮</td>
       <td><input type="text" data-key="description" data-index="${index}" value="${row.description ?? ""}"></td>
       <td><input type="number" step="0.001" data-key="nominal" data-index="${index}" value="${row.nominal ?? 0}"></td>
       <td>
@@ -36,6 +41,9 @@ export function renderTable() {
       <td><input type="text" data-key="tol" data-index="${index}" value="${row.tol ?? 0}"></td>
       <td><input type="number" step="0.01" data-key="cpk" data-index="${index}" value="${row.cpk ?? 1.33}"></td>
       <td style="text-align:center;"><input type="checkbox" data-key="floatShifted" data-index="${index}" ${row.floatShifted ? "checked" : ""}></td>
+      <td class="row-actions">
+        <button class="action-btn delete" data-index="${index}" title="Delete row">×</button>
+      </td>
     `;
     tbody.appendChild(tr);
   });
@@ -43,7 +51,119 @@ export function renderTable() {
   tbody.querySelectorAll("input, select").forEach((input) => {
     input.addEventListener("input", handleCellInput);
   });
+  
+  // Add event listeners for delete buttons
+  tbody.querySelectorAll(".delete").forEach((btn) => {
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const index = parseInt(e.target.dataset.index);
+      deleteRow(index);
+    });
+  });
+  
+  // Set up drag and drop
+  setupDragAndDrop(tbody);
 }
+
+function setupDragAndDrop(tbody) {
+  let draggedRow = null;
+  let draggedIndex = null;
+
+  tbody.querySelectorAll("tr").forEach((row, index) => {
+    // Prevent dragging on inputs/buttons
+    row.querySelectorAll("input, select, button").forEach((element) => {
+      element.addEventListener("mousedown", (e) => {
+        e.stopPropagation();
+      });
+    });
+
+    row.addEventListener("dragstart", (e) => {
+      draggedRow = row;
+      draggedIndex = parseInt(row.dataset.index);
+      row.classList.add("dragging");
+      e.dataTransfer.effectAllowed = "move";
+      e.dataTransfer.setData("text/html", row.innerHTML);
+      // Set a custom drag image
+      e.dataTransfer.setDragImage(row, 0, 0);
+    });
+
+    row.addEventListener("dragend", (e) => {
+      row.classList.remove("dragging");
+      tbody.querySelectorAll("tr").forEach((r) => {
+        r.classList.remove("drag-over");
+      });
+      draggedRow = null;
+      draggedIndex = null;
+    });
+
+    row.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "move";
+      
+      const afterElement = getDragAfterElement(tbody, e.clientY);
+      const dragging = tbody.querySelector(".dragging");
+      
+      if (afterElement == null) {
+        tbody.appendChild(dragging);
+      } else {
+        tbody.insertBefore(dragging, afterElement);
+      }
+      
+      row.classList.add("drag-over");
+    });
+
+    row.addEventListener("dragleave", (e) => {
+      row.classList.remove("drag-over");
+    });
+
+    row.addEventListener("drop", (e) => {
+      e.preventDefault();
+      row.classList.remove("drag-over");
+      
+      if (draggedRow && draggedIndex !== null) {
+        // Find the new index based on the row's position after drag
+        const allRows = Array.from(tbody.querySelectorAll("tr"));
+        const newIndex = allRows.indexOf(draggedRow);
+        
+        if (draggedIndex !== newIndex) {
+          // Move the item in the array
+          const [movedItem] = stackData.splice(draggedIndex, 1);
+          stackData.splice(newIndex, 0, movedItem);
+          
+          // Re-render and recalculate
+          renderTable();
+          calculateStack();
+        }
+      }
+    });
+  });
+}
+
+function getDragAfterElement(container, y) {
+  const draggableElements = [...container.querySelectorAll("tr:not(.dragging)")];
+  
+  return draggableElements.reduce((closest, child) => {
+    const box = child.getBoundingClientRect();
+    const offset = y - box.top - box.height / 2;
+    
+    if (offset < 0 && offset > closest.offset) {
+      return { offset: offset, element: child };
+    } else {
+      return closest;
+    }
+  }, { offset: Number.NEGATIVE_INFINITY }).element;
+}
+
+function deleteRow(index) {
+  if (stackData.length <= 1) {
+    alert("Cannot delete the last row. At least one dimension is required.");
+    return;
+  }
+  stackData.splice(index, 1);
+  renderTable();
+  calculateStack();
+}
+
 
 function handleCellInput(event) {
   const { index, key } = event.target.dataset;
