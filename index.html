@@ -12,6 +12,7 @@
       <div style="display: flex; gap: 0.5rem;">
         <button id="open-analysis-setup-dialog" class="secondary">Analysis Setup</button>
         <button id="open-settings-dialog" class="secondary">Settings</button>
+        <button id="open-help-dialog" class="secondary">Help</button>
       </div>
     </header>
 
@@ -235,6 +236,181 @@
         <div class="table-actions">
           <button type="button" id="analysis-setup-ok-btn">OK</button>
           <button value="cancel" class="secondary">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="help-dialog">
+      <form method="dialog">
+        <div class="help-container">
+          <div class="help-toc">
+            <h3>Contents</h3>
+            <ul class="toc-list">
+              <li><a href="#help-introduction" class="toc-link">Introduction</a></li>
+              <li><a href="#help-worst-case" class="toc-link">Worst Case Tolerance</a></li>
+              <li><a href="#help-rss" class="toc-link">RSS (Root Sum Square)</a></li>
+              <li><a href="#help-cpk" class="toc-link">Cpk (Process Capability)</a></li>
+              <li><a href="#help-statistical" class="toc-link">Statistical Analysis</a></li>
+              <li><a href="#help-pareto" class="toc-link">Pareto Chart</a></li>
+              <li><a href="#help-direction" class="toc-link">Direction (+/-)</a></li>
+              <li><a href="#help-using" class="toc-link">Using the Tool</a></li>
+            </ul>
+          </div>
+          <div class="help-content">
+            <section id="help-introduction" class="help-section">
+              <h2>Introduction</h2>
+              <p>StackMaster is a tolerance analysis tool designed to help engineers analyze dimensional tolerances in assemblies. It calculates how individual component tolerances combine to affect the overall assembly dimension.</p>
+              <p>This tool supports both basic tolerance analysis methods (Worst Case and RSS) and advanced statistical analysis using process capability indices (Cpk).</p>
+            </section>
+
+            <section id="help-worst-case" class="help-section">
+              <h2>Worst Case Tolerance</h2>
+              <p><strong>Worst Case Tolerance</strong> is a conservative tolerance analysis method that assumes all dimensions are at their extreme limits simultaneously.</p>
+              <h3>Calculation</h3>
+              <p>For a stack of dimensions, the worst case tolerance is calculated as:</p>
+              <p class="formula">Worst Case = Σ(tolerances)</p>
+              <p>Where each tolerance is added together, assuming the worst possible combination of all dimensions being at their maximum or minimum limits.</p>
+              <h3>When to Use</h3>
+              <ul>
+                <li>Safety-critical applications where failure is not acceptable</li>
+                <li>When you need a conservative, guaranteed worst-case scenario</li>
+                <li>For simple assemblies with few components</li>
+                <li>When statistical data is not available</li>
+              </ul>
+              <h3>Limitations</h3>
+              <p>Worst case analysis often results in overly conservative tolerances, which can lead to unnecessarily tight manufacturing requirements and higher costs.</p>
+            </section>
+
+            <section id="help-rss" class="help-section">
+              <h2>RSS (Root Sum Square)</h2>
+              <p><strong>RSS (Root Sum Square)</strong> is a statistical tolerance analysis method that accounts for the probability that all dimensions will not be at their extremes simultaneously.</p>
+              <h3>Calculation</h3>
+              <p>The RSS tolerance is calculated as:</p>
+              <p class="formula">RSS = √(Σ(tolerance²))</p>
+              <p>This method assumes that dimensional variations follow a normal distribution and are statistically independent.</p>
+              <h3>When to Use</h3>
+              <ul>
+                <li>When you have multiple components in an assembly</li>
+                <li>For cost-effective tolerance allocation</li>
+                <li>When dimensions are statistically independent</li>
+                <li>For production environments with normal process variation</li>
+              </ul>
+              <h3>Assumptions</h3>
+              <ul>
+                <li>Dimensions follow a normal (Gaussian) distribution</li>
+                <li>Dimensions are centered on their nominal values</li>
+                <li>Variations are statistically independent</li>
+                <li>Process is in statistical control</li>
+              </ul>
+            </section>
+
+            <section id="help-cpk" class="help-section">
+              <h2>Cpk (Process Capability Index)</h2>
+              <p><strong>Cpk</strong> is a statistical measure of process capability that indicates how well a process can produce parts within specification limits.</p>
+              <h3>Calculation</h3>
+              <p>Cpk is calculated as:</p>
+              <p class="formula">Cpk = min[(USL - μ) / (3σ), (μ - LSL) / (3σ)]</p>
+              <p>Where:</p>
+              <ul>
+                <li><strong>USL</strong> = Upper Specification Limit</li>
+                <li><strong>LSL</strong> = Lower Specification Limit</li>
+                <li><strong>μ</strong> = Process mean</li>
+                <li><strong>σ</strong> = Process standard deviation</li>
+              </ul>
+              <h3>Interpretation</h3>
+              <ul>
+                <li><strong>Cpk &lt; 1.0</strong>: Process is not capable, parts will be out of spec</li>
+                <li><strong>Cpk = 1.0</strong>: Process is marginally capable (~0.27% out of spec)</li>
+                <li><strong>Cpk = 1.33</strong>: Process is capable (~0.0063% out of spec)</li>
+                <li><strong>Cpk = 1.67</strong>: Process is highly capable (~0.00006% out of spec)</li>
+                <li><strong>Cpk = 2.0</strong>: Six Sigma quality (~0.0000002% out of spec)</li>
+              </ul>
+              <h3>In Tolerance Analysis</h3>
+              <p>When using advanced statistical mode, you can specify expected Cpk values for each component. The tool then calculates the statistical variation (sigma) and predicts the probability of the assembly being within specification limits.</p>
+            </section>
+
+            <section id="help-statistical" class="help-section">
+              <h2>Statistical Analysis</h2>
+              <p>When <strong>Advanced Statistical Mode</strong> is enabled, the tool uses Cpk values to calculate statistical variations.</p>
+              <h3>Standard Deviation (σ)</h3>
+              <p>The standard deviation represents the spread of the dimensional distribution. It's calculated from the tolerance and Cpk value:</p>
+              <p class="formula">σ = Tolerance / (3 × Cpk)</p>
+              <h3>Process Ranges</h3>
+              <p>The tool calculates various process ranges:</p>
+              <ul>
+                <li><strong>3σ Range</strong>: 99.73% of parts will be within ±3 standard deviations</li>
+                <li><strong>4σ Range</strong>: 99.99% of parts will be within ±4 standard deviations</li>
+                <li><strong>5σ Range</strong>: 99.9999% of parts will be within ±5 standard deviations</li>
+                <li><strong>6σ Range</strong>: 99.9999998% of parts will be within ±6 standard deviations (Six Sigma)</li>
+              </ul>
+              <h3>Stack Mean</h3>
+              <p>The stack mean is calculated by summing the nominal values, accounting for direction (+ or -). Positive dimensions add to the stack, negative dimensions subtract from it.</p>
+            </section>
+
+            <section id="help-pareto" class="help-section">
+              <h2>Pareto Chart</h2>
+              <p>The <strong>Pareto Chart</strong> visualizes the contribution of each dimension to the total tolerance variation.</p>
+              <h3>Purpose</h3>
+              <p>The Pareto principle (80/20 rule) suggests that typically 80% of the variation comes from 20% of the components. The chart helps identify:</p>
+              <ul>
+                <li><strong>Vital Few</strong>: Components contributing most to variation (shown in red)</li>
+                <li><strong>Trivial Many</strong>: Components with minimal contribution (shown in blue)</li>
+              </ul>
+              <h3>How to Read</h3>
+              <ul>
+                <li><strong>Bars</strong>: Show the percentage contribution of each dimension</li>
+                <li><strong>Line</strong>: Shows cumulative contribution percentage</li>
+                <li><strong>80% Line</strong>: Helps identify the vital few components</li>
+              </ul>
+              <h3>Using the Chart</h3>
+              <p>Focus your tolerance improvement efforts on the "vital few" components (red bars) to achieve the most significant impact on overall assembly variation.</p>
+            </section>
+
+            <section id="help-direction" class="help-section">
+              <h2>Direction (+/-)</h2>
+              <p>The <strong>Direction</strong> column indicates whether a dimension contributes positively or negatively to the overall stack.</p>
+              <h3>Positive (+)</h3>
+              <p>A positive direction means the dimension adds to the stack. For example, in a height stack, each component's thickness adds to the total height.</p>
+              <h3>Negative (-)</h3>
+              <p>A negative direction means the dimension subtracts from the stack. For example, a clearance or gap that reduces the overall dimension.</p>
+              <h3>Example</h3>
+              <p>In an assembly height calculation:</p>
+              <ul>
+                <li>Base plate thickness: <strong>+</strong> (adds to height)</li>
+                <li>Spacer block: <strong>+</strong> (adds to height)</li>
+                <li>Clearance gap: <strong>-</strong> (reduces effective height)</li>
+              </ul>
+            </section>
+
+            <section id="help-using" class="help-section">
+              <h2>Using the Tool</h2>
+              <h3>Basic Workflow</h3>
+              <ol>
+                <li><strong>Analysis Setup</strong>: Enter metadata, critical requirements, and assumptions</li>
+                <li><strong>Add Dimensions</strong>: Enter each component's nominal value, tolerance, and direction</li>
+                <li><strong>Review Results</strong>: Check Worst Case and RSS tolerances</li>
+                <li><strong>Analyze Pareto Chart</strong>: Identify critical components</li>
+                <li><strong>Optimize</strong>: Adjust tolerances based on analysis</li>
+              </ol>
+              <h3>Advanced Features</h3>
+              <ul>
+                <li><strong>Advanced Statistical Mode</strong>: Enable in Settings to use Cpk-based analysis</li>
+                <li><strong>Notes</strong>: Add notes to each dimension for documentation</li>
+                <li><strong>Source Images</strong>: Attach images with highlighted areas</li>
+                <li><strong>Drag and Drop</strong>: Reorder dimensions by dragging rows</li>
+              </ul>
+              <h3>Tips</h3>
+              <ul>
+                <li>Start with basic mode to get a quick assessment</li>
+                <li>Use advanced mode when you have Cpk data from manufacturing</li>
+                <li>Focus tolerance improvements on components shown in red in the Pareto chart</li>
+                <li>Document assumptions and context in the Analysis Setup</li>
+              </ul>
+            </section>
+          </div>
+        </div>
+        <div class="table-actions">
+          <button value="cancel" class="secondary">Close</button>
         </div>
       </form>
     </dialog>

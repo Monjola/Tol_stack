@@ -3,6 +3,7 @@ import { setupTable } from './table.js';
 import { setupDashboard } from './dashboard.js';
 import { setupSettings } from './settings.js';
 import { setupAnalysisSetup } from './analysisSetup.js';
+import { setupHelp } from './help.js';
 
 // Main initialization
 document.addEventListener("DOMContentLoaded", () => {
@@ -11,5 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupDashboard();
   setupSettings();
   setupAnalysisSetup();
+  setupHelp();
 });
 
