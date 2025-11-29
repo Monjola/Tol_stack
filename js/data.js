@@ -40,9 +40,9 @@ export const analysisSetup = {
   },
   criticalRequirement: {
     criticalFeature: "",
-    nominalTarget: null,
-    lsl: null,
-    usl: null,
+    nominalTarget: 163,
+    lsl: 162,
+    usl: 164,
     acceptanceCriteria: "",
   },
   assumptionsContext: {

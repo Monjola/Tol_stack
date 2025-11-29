@@ -1,4 +1,4 @@
-import { stackData, settings } from './data.js';
+import { stackData, settings, analysisSetup } from './data.js';
 
 // Dashboard calculations and Pareto chart
 export function setupDashboard() {
@@ -36,31 +36,170 @@ export function calculateStack() {
   // Always show stack mean
   document.getElementById("stat-mean").textContent = stackMean.toFixed(3);
   
-  // Show/hide basic vs advanced stats based on advanced statistical mode
+  // Show analysis setup values
+  const nominalTarget = analysisSetup.criticalRequirement.nominalTarget;
+  const lsl = analysisSetup.criticalRequirement.lsl;
+  const usl = analysisSetup.criticalRequirement.usl;
+  
+  const nominalTargetCard = document.getElementById("stat-nominal-target-card");
+  const lslCard = document.getElementById("stat-lsl-card");
+  const uslCard = document.getElementById("stat-usl-card");
+  const specToleranceCard = document.getElementById("stat-spec-tolerance-card");
+  
+  if (nominalTarget !== null && nominalTarget !== undefined) {
+    document.getElementById("stat-nominal-target").textContent = nominalTarget.toFixed(3);
+    if (nominalTargetCard) nominalTargetCard.style.display = '';
+  } else {
+    if (nominalTargetCard) nominalTargetCard.style.display = 'none';
+  }
+  
+  if (lsl !== null && lsl !== undefined) {
+    document.getElementById("stat-lsl").textContent = lsl.toFixed(3);
+    if (lslCard) lslCard.style.display = '';
+  } else {
+    if (lslCard) lslCard.style.display = 'none';
+  }
+  
+  if (usl !== null && usl !== undefined) {
+    document.getElementById("stat-usl").textContent = usl.toFixed(3);
+    if (uslCard) uslCard.style.display = '';
+    
+    // Calculate and display spec tolerance in +/- format
+    if (nominalTarget !== null && nominalTarget !== undefined) {
+      const specTolerance = (usl - nominalTarget) === (nominalTarget - lsl) ? (usl - nominalTarget) : null;
+      if (specTolerance !== null) {
+        document.getElementById("stat-spec-tolerance").textContent = `±${specTolerance.toFixed(3)}`;
+        if (specToleranceCard) specToleranceCard.style.display = '';
+      } else {
+        // Asymmetric tolerance - show range
+        const upperTol = usl - nominalTarget;
+        const lowerTol = nominalTarget - lsl;
+        document.getElementById("stat-spec-tolerance").textContent = `+${upperTol.toFixed(3)} / -${lowerTol.toFixed(3)}`;
+        if (specToleranceCard) specToleranceCard.style.display = '';
+      }
+    } else {
+      if (specToleranceCard) specToleranceCard.style.display = 'none';
+    }
+  } else {
+    if (uslCard) uslCard.style.display = 'none';
+    if (specToleranceCard) specToleranceCard.style.display = 'none';
+  }
+  
+  // Calculate achieved Cpk if in advanced mode and we have spec limits
   const showAdvanced = settings.advancedStatisticalMode;
+  let achievedCpk = null;
+  
+  if (showAdvanced && lsl !== null && usl !== undefined && lsl !== undefined && usl !== null && stackSigma > 0) {
+    // Cpk = min[(USL - μ) / (3σ), (μ - LSL) / (3σ)]
+    const cpkUpper = (usl - stackMean) / (3 * stackSigma);
+    const cpkLower = (stackMean - lsl) / (3 * stackSigma);
+    achievedCpk = Math.min(cpkUpper, cpkLower);
+    
+    const achievedCpkCard = document.getElementById("stat-achieved-cpk-card");
+    document.getElementById("stat-achieved-cpk").textContent = achievedCpk.toFixed(3);
+    if (achievedCpkCard) achievedCpkCard.style.display = '';
+    
+    // Show Stack Mean - 3σ and Stack Mean + 3σ (minus first, then plus)
+    const meanPlus3Sigma = stackMean + range3;
+    const meanMinus3Sigma = stackMean - range3;
+    document.getElementById("stat-mean-minus-3sigma").textContent = meanMinus3Sigma.toFixed(3);
+    document.getElementById("stat-mean-plus-3sigma").textContent = meanPlus3Sigma.toFixed(3);
+    document.getElementById("stat-mean-minus-3sigma-card").style.display = '';
+    document.getElementById("stat-mean-plus-3sigma-card").style.display = '';
+    
+    // Update column assignments for advanced mode
+    document.getElementById("stat-mean-minus-3sigma-card").setAttribute('data-column', '2');
+    document.getElementById("stat-mean-plus-3sigma-card").setAttribute('data-column', '3');
+  } else {
+    const achievedCpkCard = document.getElementById("stat-achieved-cpk-card");
+    if (achievedCpkCard) achievedCpkCard.style.display = 'none';
+    document.getElementById("stat-mean-minus-3sigma-card").style.display = 'none';
+    document.getElementById("stat-mean-plus-3sigma-card").style.display = 'none';
+  }
+  
+  // Evaluate acceptance criteria
+  const acceptanceCriteria = analysisSetup.criticalRequirement.acceptanceCriteria;
+  const acceptanceCriteriaCard = document.getElementById("stat-acceptance-criteria-card");
+  const acceptanceCriteriaValue = document.getElementById("stat-acceptance-criteria");
+  const acceptanceCard = document.getElementById("stat-acceptance-card");
+  const acceptanceIndicator = document.getElementById("acceptance-indicator");
+  const acceptanceValue = document.getElementById("stat-acceptance");
+  
+  if (acceptanceCriteria) {
+    // Display acceptance criteria text
+    let criteriaText = "";
+    if (showAdvanced) {
+      if (acceptanceCriteria === "cpk-1") {
+        criteriaText = "Must have a Cpk of atleast 1";
+      } else if (acceptanceCriteria === "cpk-1.33") {
+        criteriaText = "Must have a Cpk of atleast 1.33";
+      } else if (acceptanceCriteria === "cpk-1.67") {
+        criteriaText = "Must have a Cpk of atleast 1.67";
+      } else if (acceptanceCriteria === "cpk-2") {
+        criteriaText = "Must have a Cpk of atleast 2";
+      }
+    } else {
+      if (acceptanceCriteria === "worst-case") {
+        criteriaText = "Worst Case tolerance must be within spec limits";
+      } else if (acceptanceCriteria === "rss") {
+        criteriaText = "RSS tolerance must be within spec limits";
+      }
+    }
+    
+    acceptanceCriteriaValue.textContent = criteriaText;
+    if (acceptanceCriteriaCard) acceptanceCriteriaCard.style.display = '';
+    
+    // Evaluate pass/fail
+    let passed = false;
+    
+    if (showAdvanced) {
+      // Advanced mode: Check Cpk requirements
+      if (achievedCpk !== null) {
+        if (acceptanceCriteria === "cpk-1") {
+          passed = achievedCpk >= 1.0;
+        } else if (acceptanceCriteria === "cpk-1.33") {
+          passed = achievedCpk >= 1.33;
+        } else if (acceptanceCriteria === "cpk-1.67") {
+          passed = achievedCpk >= 1.67;
+        } else if (acceptanceCriteria === "cpk-2") {
+          passed = achievedCpk >= 2.0;
+        }
+      }
+    } else {
+      // Basic mode: Check if tolerance is within spec limits
+      if (lsl !== null && usl !== null && lsl !== undefined && usl !== undefined) {
+        if (acceptanceCriteria === "worst-case") {
+          const worstCaseUpper = stackMean + worstCase;
+          const worstCaseLower = stackMean - worstCase;
+          passed = worstCaseUpper <= usl && worstCaseLower >= lsl;
+        } else if (acceptanceCriteria === "rss") {
+          const rssUpper = stackMean + rssValue;
+          const rssLower = stackMean - rssValue;
+          passed = rssUpper <= usl && rssLower >= lsl;
+        }
+      }
+    }
+    
+    acceptanceValue.textContent = passed ? "PASS" : "FAIL";
+    acceptanceIndicator.className = `acceptance-indicator ${passed ? 'pass' : 'fail'}`;
+    if (acceptanceCard) acceptanceCard.style.display = '';
+  } else {
+    if (acceptanceCriteriaCard) acceptanceCriteriaCard.style.display = 'none';
+    if (acceptanceCard) acceptanceCard.style.display = 'none';
+  }
+  
+  // Show/hide basic vs advanced stats based on advanced statistical mode
   const worstCaseCard = document.getElementById("stat-worst-case-card");
   const rssCard = document.getElementById("stat-rss-card");
-  const sigmaCard = document.getElementById("stat-sigma-card");
   const sigma3Card = document.getElementById("stat-3sigma-card");
-  const sigma4Card = document.getElementById("stat-4sigma-card");
-  const sigma5Card = document.getElementById("stat-5sigma-card");
-  const sigma6Card = document.getElementById("stat-6sigma-card");
   
   if (showAdvanced) {
     // Hide basic stats, show advanced stats
     if (worstCaseCard) worstCaseCard.style.display = 'none';
     if (rssCard) rssCard.style.display = 'none';
     
-    document.getElementById("stat-sigma").textContent = `±${stackSigma.toFixed(3)}`;
     document.getElementById("stat-3sigma").textContent = `±${range3.toFixed(3)}`;
-    document.getElementById("stat-4sigma").textContent = `±${range4.toFixed(3)}`;
-    document.getElementById("stat-5sigma").textContent = `±${range5.toFixed(3)}`;
-    document.getElementById("stat-6sigma").textContent = `±${range6.toFixed(3)}`;
-    if (sigmaCard) sigmaCard.style.display = '';
     if (sigma3Card) sigma3Card.style.display = '';
-    if (sigma4Card) sigma4Card.style.display = '';
-    if (sigma5Card) sigma5Card.style.display = '';
-    if (sigma6Card) sigma6Card.style.display = '';
   } else {
     // Show basic stats, hide advanced stats
     document.getElementById("stat-worst-case").textContent = `±${worstCase.toFixed(3)}`;
@@ -68,15 +207,63 @@ export function calculateStack() {
     if (worstCaseCard) worstCaseCard.style.display = '';
     if (rssCard) rssCard.style.display = '';
     
-    if (sigmaCard) sigmaCard.style.display = 'none';
     if (sigma3Card) sigma3Card.style.display = 'none';
-    if (sigma4Card) sigma4Card.style.display = 'none';
-    if (sigma5Card) sigma5Card.style.display = 'none';
-    if (sigma6Card) sigma6Card.style.display = 'none';
+    
+    // Update column assignments for basic mode
+    if (worstCaseCard) worstCaseCard.setAttribute('data-column', '2');
+    if (rssCard) rssCard.setAttribute('data-column', '3');
   }
 
   renderPareto(stackVariance);
   console.log({ stackMean, worstCase, rss: rssValue, standardDeviation: stackSigma, processRange3Sigma: range3, range6Sigma: range6 });
+  
+  // Align box widths vertically (same column = same width)
+  alignBoxWidths();
+}
+
+function alignBoxWidths() {
+  // Wait for layout to settle, then measure and align
+  setTimeout(() => {
+    // For each column, find the widest box and set all boxes in that column to that width
+    for (let col = 1; col <= 4; col++) {
+      const row1Box = document.querySelector(`.stats-row:first-of-type .stat-card[data-column="${col}"]`);
+      const row2Boxes = document.querySelectorAll(`.stats-row:nth-of-type(2) .stat-card[data-column="${col}"]`);
+      
+      let maxWidth = 0;
+      const boxesToResize = [];
+      
+      // Check row 1 box
+      if (row1Box && row1Box.offsetParent !== null) { // offsetParent is null if display: none
+        // Temporarily remove width constraint to measure natural width
+        const oldWidth = row1Box.style.width;
+        row1Box.style.width = 'auto';
+        const width = row1Box.getBoundingClientRect().width;
+        row1Box.style.width = oldWidth;
+        maxWidth = Math.max(maxWidth, width);
+        boxesToResize.push(row1Box);
+      }
+      
+      // Check row 2 boxes
+      row2Boxes.forEach(box => {
+        if (box && box.offsetParent !== null) {
+          // Temporarily remove width constraint to measure natural width
+          const oldWidth = box.style.width;
+          box.style.width = 'auto';
+          const width = box.getBoundingClientRect().width;
+          box.style.width = oldWidth;
+          maxWidth = Math.max(maxWidth, width);
+          boxesToResize.push(box);
+        }
+      });
+      
+      // Set all visible boxes in this column to the max width
+      if (maxWidth > 0) {
+        boxesToResize.forEach(box => {
+          box.style.width = maxWidth + 'px';
+        });
+      }
+    }
+  }, 10);
 }
 
 export function parseAsymmetry(tol, nominal) {

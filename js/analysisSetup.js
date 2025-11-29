@@ -1,4 +1,5 @@
 import { analysisSetup, settings } from './data.js';
+import { calculateStack } from './dashboard.js';
 
 // Analysis setup dialog functions
 export function setupAnalysisSetup() {
@@ -40,6 +41,7 @@ export function setupAnalysisSetup() {
   if (okBtn) {
     okBtn.addEventListener("click", () => {
       saveAnalysisSetupData();
+      calculateStack(); // Recalculate to update acceptance criteria
       dialog.close();
     });
   }
@@ -96,10 +98,10 @@ function updateAcceptanceCriteriaOptions() {
   if (settings.advancedStatisticalMode) {
     // Advanced mode options
     const options = [
-      { value: "cpk-1", text: "Output must have Cpk of 1" },
-      { value: "cpk-1.33", text: "Output must have Cpk of 1.33" },
-      { value: "cpk-1.67", text: "Output must have Cpk of 1.67" },
-      { value: "cpk-2", text: "Output must have Cpk of 2" },
+      { value: "cpk-1", text: "Must have a Cpk of atleast 1" },
+      { value: "cpk-1.33", text: "Must have a Cpk of atleast 1.33" },
+      { value: "cpk-1.67", text: "Must have a Cpk of atleast 1.67" },
+      { value: "cpk-2", text: "Must have a Cpk of atleast 2" },
     ];
     
     options.forEach(opt => {
