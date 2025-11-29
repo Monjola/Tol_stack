@@ -760,6 +760,68 @@ dialog textarea {
   color: var(--text);
 }
 
+.form-section {
+  margin-bottom: 1.5rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-section:last-of-type {
+  border-bottom: none;
+}
+
+.form-section h4 {
+  margin: 0 0 1rem 0;
+  font-size: 1rem;
+  color: var(--text);
+  font-weight: 600;
+}
+
+.form-section label {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  font-size: 0.9rem;
+  color: var(--text);
+}
+
+.form-section label:last-child {
+  margin-bottom: 0;
+}
+
+.form-section input[type="text"],
+.form-section input[type="number"],
+.form-section input[type="date"],
+.form-section select,
+.form-section textarea {
+  width: 100%;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--border);
+  background: var(--bg-alt);
+  color: var(--text);
+  font-family: inherit;
+  font-size: 0.9rem;
+}
+
+.form-section input[type="number"] {
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.form-section input[type="number"]::-webkit-outer-spin-button,
+.form-section input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+#analysis-setup-dialog {
+  width: min(600px, 90vw);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
 .setting-toggle {
   display: flex;
   align-items: center;

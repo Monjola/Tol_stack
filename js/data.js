@@ -29,3 +29,24 @@ export const settings = {
   showToleranceType: false,
 };
 
+// Analysis setup data
+export const analysisSetup = {
+  metadata: {
+    title: "",
+    project: "",
+    partNr: "",
+    analyst: "",
+    creationDate: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
+  },
+  criticalRequirement: {
+    criticalFeature: "",
+    nominalTarget: null,
+    lsl: null,
+    usl: null,
+    acceptanceCriteria: "",
+  },
+  assumptionsContext: {
+    functionalDescription: "",
+  },
+};
+

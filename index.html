@@ -9,7 +9,10 @@
   <body>
     <header>
       <h1>StackMaster · Tolerance Analysis</h1>
-      <button id="open-settings-dialog" class="secondary">Settings</button>
+      <div style="display: flex; gap: 0.5rem;">
+        <button id="open-analysis-setup-dialog" class="secondary">Analysis Setup</button>
+        <button id="open-settings-dialog" class="secondary">Settings</button>
+      </div>
     </header>
 
     <main>
@@ -162,6 +165,75 @@
         </div>
         <div class="table-actions">
           <button type="button" id="source-ok-btn">OK</button>
+          <button value="cancel" class="secondary">Cancel</button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="analysis-setup-dialog">
+      <form method="dialog">
+        <h3>Analysis Setup</h3>
+        
+        <div class="form-section">
+          <h4>Metadata</h4>
+          <label>
+            Analysis Title
+            <input type="text" id="analysis-title" placeholder="Enter analysis title">
+          </label>
+          <label>
+            Project
+            <input type="text" id="analysis-project" placeholder="Enter project name">
+          </label>
+          <label>
+            Part/Assembly Nr
+            <input type="text" id="analysis-part-nr" placeholder="Enter part/assembly number">
+          </label>
+          <label>
+            Analyst Name/ID
+            <input type="text" id="analysis-analyst" placeholder="Enter analyst name or ID">
+          </label>
+          <label>
+            Creation Date
+            <input type="date" id="analysis-creation-date">
+          </label>
+        </div>
+
+        <div class="form-section">
+          <h4>Critical Requirement</h4>
+          <label>
+            Critical Feature/Gap Measured
+            <input type="text" id="analysis-critical-feature" placeholder="Enter critical feature or gap">
+          </label>
+          <label>
+            Nominal Target Value
+            <input type="number" step="0.001" id="analysis-nominal-target" placeholder="Enter nominal target value">
+          </label>
+          <label>
+            Lower Specification Limit (LSL)
+            <input type="number" step="0.001" id="analysis-lsl" placeholder="Enter LSL">
+          </label>
+          <label>
+            Upper Specification Limit (USL)
+            <input type="number" step="0.001" id="analysis-usl" placeholder="Enter USL">
+          </label>
+          <label>
+            Acceptance Criteria
+            <select id="analysis-acceptance-criteria">
+              <!-- Options will be populated dynamically -->
+            </select>
+          </label>
+        </div>
+
+        <div class="form-section">
+          <h4>Assumptions Context</h4>
+          <label>
+            Functional Description / Notes
+            <textarea id="analysis-functional-description" rows="4" placeholder="Enter functional description or notes"></textarea>
+          </label>
+        </div>
+
+        <div class="table-actions">
+          <button type="button" id="analysis-setup-ok-btn">OK</button>
           <button value="cancel" class="secondary">Cancel</button>
         </div>
       </form>
