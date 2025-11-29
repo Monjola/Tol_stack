@@ -60,7 +60,7 @@ function loadAnalysisSetupData() {
   document.getElementById("analysis-nominal-target").value = analysisSetup.criticalRequirement.nominalTarget ?? "";
   document.getElementById("analysis-lsl").value = analysisSetup.criticalRequirement.lsl ?? "";
   document.getElementById("analysis-usl").value = analysisSetup.criticalRequirement.usl ?? "";
-  document.getElementById("analysis-acceptance-criteria").value = analysisSetup.criticalRequirement.acceptanceCriteria || "";
+  document.getElementById("analysis-acceptance-criteria").value = analysisSetup.criticalRequirement.acceptanceCriteria || "worst-case";
   
   // Assumptions Context
   document.getElementById("analysis-functional-description").value = analysisSetup.assumptionsContext.functionalDescription || "";
@@ -131,9 +131,19 @@ function updateAcceptanceCriteriaOptions() {
     });
   }
   
-  // If current value doesn't exist in new options, select first option
+  // If current value doesn't exist in new options, default to "worst-case" in basic mode or first option in advanced mode
   if (!select.value && select.options.length > 0) {
-    select.selectedIndex = 0;
+    if (!settings.advancedStatisticalMode) {
+      // In basic mode, default to "worst-case"
+      const worstCaseOption = Array.from(select.options).find(opt => opt.value === "worst-case");
+      if (worstCaseOption) {
+        worstCaseOption.selected = true;
+      } else {
+        select.selectedIndex = 0;
+      }
+    } else {
+      select.selectedIndex = 0;
+    }
   }
 }
 

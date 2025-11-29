@@ -6,6 +6,11 @@ export function setupDashboard() {
 }
 
 export function calculateStack() {
+  // Ensure default acceptance criteria is set before calculations
+  if (!analysisSetup.criticalRequirement.acceptanceCriteria && !settings.advancedStatisticalMode) {
+    analysisSetup.criticalRequirement.acceptanceCriteria = "worst-case";
+  }
+  
   let stackMean = 0;
   let worstCase = 0;
   let rss = 0;
@@ -117,8 +122,11 @@ export function calculateStack() {
     document.getElementById("stat-mean-plus-3sigma-card").style.display = 'none';
   }
   
-  // Evaluate acceptance criteria
-  const acceptanceCriteria = analysisSetup.criticalRequirement.acceptanceCriteria;
+  // Evaluate acceptance criteria (default to "worst-case" in basic mode if not set)
+  let acceptanceCriteria = analysisSetup.criticalRequirement.acceptanceCriteria;
+  if (!acceptanceCriteria && !showAdvanced) {
+    acceptanceCriteria = "worst-case";
+  }
   const acceptanceCriteriaCard = document.getElementById("stat-acceptance-criteria-card");
   const acceptanceCriteriaValue = document.getElementById("stat-acceptance-criteria");
   const acceptanceCard = document.getElementById("stat-acceptance-card");
@@ -193,38 +201,135 @@ export function calculateStack() {
   const rssCard = document.getElementById("stat-rss-card");
   const sigma3Card = document.getElementById("stat-3sigma-card");
   
+  // Basic mode boxes for acceptance criteria
+  const meanMinusWorstCaseCard = document.getElementById("stat-mean-minus-worst-case-card");
+  const meanPlusWorstCaseCard = document.getElementById("stat-mean-plus-worst-case-card");
+  const worstCaseTolCard = document.getElementById("stat-worst-case-tol-card");
+  const meanMinusRssCard = document.getElementById("stat-mean-minus-rss-card");
+  const meanPlusRssCard = document.getElementById("stat-mean-plus-rss-card");
+  const rssTolCard = document.getElementById("stat-rss-tol-card");
+  
   if (showAdvanced) {
     // Hide basic stats, show advanced stats
     if (worstCaseCard) worstCaseCard.style.display = 'none';
     if (rssCard) rssCard.style.display = 'none';
+    if (meanMinusWorstCaseCard) meanMinusWorstCaseCard.style.display = 'none';
+    if (meanPlusWorstCaseCard) meanPlusWorstCaseCard.style.display = 'none';
+    if (worstCaseTolCard) worstCaseTolCard.style.display = 'none';
+    if (meanMinusRssCard) meanMinusRssCard.style.display = 'none';
+    if (meanPlusRssCard) meanPlusRssCard.style.display = 'none';
+    if (rssTolCard) rssTolCard.style.display = 'none';
     
     document.getElementById("stat-3sigma").textContent = `±${range3.toFixed(3)}`;
     if (sigma3Card) sigma3Card.style.display = '';
   } else {
-    // Show basic stats, hide advanced stats
-    document.getElementById("stat-worst-case").textContent = `±${worstCase.toFixed(3)}`;
-    document.getElementById("stat-rss").textContent = `±${rssValue.toFixed(3)}`;
-    if (worstCaseCard) worstCaseCard.style.display = '';
-    if (rssCard) rssCard.style.display = '';
+    // Basic mode: show/hide based on acceptance criteria
+    const acceptanceCriteria = analysisSetup.criticalRequirement.acceptanceCriteria;
     
     if (sigma3Card) sigma3Card.style.display = 'none';
     
-    // Update column assignments for basic mode
-    if (worstCaseCard) worstCaseCard.setAttribute('data-column', '2');
-    if (rssCard) rssCard.setAttribute('data-column', '3');
+    if (acceptanceCriteria === "worst-case") {
+      // Show worst case breakdown, hide RSS
+      if (worstCaseCard) worstCaseCard.style.display = 'none';
+      if (rssCard) rssCard.style.display = 'none';
+      
+      const meanMinusWorstCase = stackMean - worstCase;
+      const meanPlusWorstCase = stackMean + worstCase;
+      
+      document.getElementById("stat-mean-minus-worst-case").textContent = meanMinusWorstCase.toFixed(3);
+      document.getElementById("stat-mean-plus-worst-case").textContent = meanPlusWorstCase.toFixed(3);
+      document.getElementById("stat-worst-case-tol").textContent = `±${worstCase.toFixed(3)}`;
+      
+      if (meanMinusWorstCaseCard) meanMinusWorstCaseCard.style.display = '';
+      if (meanPlusWorstCaseCard) meanPlusWorstCaseCard.style.display = '';
+      if (worstCaseTolCard) worstCaseTolCard.style.display = '';
+      
+      if (meanMinusRssCard) meanMinusRssCard.style.display = 'none';
+      if (meanPlusRssCard) meanPlusRssCard.style.display = 'none';
+      if (rssTolCard) rssTolCard.style.display = 'none';
+    } else if (acceptanceCriteria === "rss") {
+      // Show RSS breakdown, hide worst case
+      if (worstCaseCard) worstCaseCard.style.display = 'none';
+      if (rssCard) rssCard.style.display = 'none';
+      
+      const meanMinusRss = stackMean - rssValue;
+      const meanPlusRss = stackMean + rssValue;
+      
+      document.getElementById("stat-mean-minus-rss").textContent = meanMinusRss.toFixed(3);
+      document.getElementById("stat-mean-plus-rss").textContent = meanPlusRss.toFixed(3);
+      document.getElementById("stat-rss-tol").textContent = `±${rssValue.toFixed(3)}`;
+      
+      if (meanMinusRssCard) meanMinusRssCard.style.display = '';
+      if (meanPlusRssCard) meanPlusRssCard.style.display = '';
+      if (rssTolCard) rssTolCard.style.display = '';
+      
+      if (meanMinusWorstCaseCard) meanMinusWorstCaseCard.style.display = 'none';
+      if (meanPlusWorstCaseCard) meanPlusWorstCaseCard.style.display = 'none';
+      if (worstCaseTolCard) worstCaseTolCard.style.display = 'none';
+    } else {
+      // No acceptance criteria: show legacy boxes
+      document.getElementById("stat-worst-case").textContent = `±${worstCase.toFixed(3)}`;
+      document.getElementById("stat-rss").textContent = `±${rssValue.toFixed(3)}`;
+      if (worstCaseCard) worstCaseCard.style.display = '';
+      if (rssCard) rssCard.style.display = '';
+      
+      if (meanMinusWorstCaseCard) meanMinusWorstCaseCard.style.display = 'none';
+      if (meanPlusWorstCaseCard) meanPlusWorstCaseCard.style.display = 'none';
+      if (worstCaseTolCard) worstCaseTolCard.style.display = 'none';
+      if (meanMinusRssCard) meanMinusRssCard.style.display = 'none';
+      if (meanPlusRssCard) meanPlusRssCard.style.display = 'none';
+      if (rssTolCard) rssTolCard.style.display = 'none';
+    }
   }
 
   renderPareto(stackVariance);
   console.log({ stackMean, worstCase, rss: rssValue, standardDeviation: stackSigma, processRange3Sigma: range3, range6Sigma: range6 });
   
+  // Force a reflow to ensure all display changes are applied before measuring
+  void document.body.offsetHeight;
+  
   // Align box widths vertically (same column = same width)
-  alignBoxWidths();
+  // Use requestAnimationFrame to ensure DOM is fully updated
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+      alignBoxWidths();
+      // Update responsive scaling after width alignment
+      updateDashboardScale();
+    }, 10);
+  });
 }
+
+function updateDashboardScale() {
+  const container = document.querySelector('.dashboard-container');
+  if (!container) return;
+  
+  const containerWidth = container.scrollWidth;
+  const viewportWidth = window.innerWidth;
+  const padding = 32; // Account for page padding
+  
+  if (containerWidth > viewportWidth - padding) {
+    const scale = (viewportWidth - padding) / containerWidth;
+    container.style.transform = `scale(${scale})`;
+    container.style.width = `${containerWidth}px`;
+    // Adjust height to account for scaling
+    container.style.marginBottom = `${(1 - scale) * container.scrollHeight}px`;
+  } else {
+    container.style.transform = 'scale(1)';
+    container.style.width = '100%';
+    container.style.marginBottom = '0';
+  }
+}
+
+// Update scale on window resize
+window.addEventListener('resize', () => {
+  updateDashboardScale();
+});
 
 function alignBoxWidths() {
   // Wait for layout to settle, then measure and align
-  setTimeout(() => {
-    // For each column, find the widest box and set all boxes in that column to that width
+  requestAnimationFrame(() => {
+    setTimeout(() => {
+    // First, align rows 1 and 2 columns
     for (let col = 1; col <= 4; col++) {
       const row1Box = document.querySelector(`.stats-row:first-of-type .stat-card[data-column="${col}"]`);
       const row2Boxes = document.querySelectorAll(`.stats-row:nth-of-type(2) .stat-card[data-column="${col}"]`);
@@ -233,8 +338,7 @@ function alignBoxWidths() {
       const boxesToResize = [];
       
       // Check row 1 box
-      if (row1Box && row1Box.offsetParent !== null) { // offsetParent is null if display: none
-        // Temporarily remove width constraint to measure natural width
+      if (row1Box && row1Box.offsetParent !== null) {
         const oldWidth = row1Box.style.width;
         row1Box.style.width = 'auto';
         const width = row1Box.getBoundingClientRect().width;
@@ -246,7 +350,6 @@ function alignBoxWidths() {
       // Check row 2 boxes
       row2Boxes.forEach(box => {
         if (box && box.offsetParent !== null) {
-          // Temporarily remove width constraint to measure natural width
           const oldWidth = box.style.width;
           box.style.width = 'auto';
           const width = box.getBoundingClientRect().width;
@@ -263,7 +366,123 @@ function alignBoxWidths() {
         });
       }
     }
-  }, 10);
+    
+    // Force a reflow to ensure widths are applied before measuring combined widths
+    void document.body.offsetHeight;
+    
+    // Now align row 3 boxes to combined widths from row 2
+    const acceptanceCriteriaCard = document.getElementById("stat-acceptance-criteria-card");
+    const achievedCpkCard = document.getElementById("stat-achieved-cpk-card");
+    const acceptanceCard = document.getElementById("stat-acceptance-card");
+    const showAdvanced = settings.advancedStatisticalMode;
+    let acceptanceCriteria = analysisSetup.criticalRequirement.acceptanceCriteria;
+    // Default to "worst-case" in basic mode if not set
+    if (!acceptanceCriteria && !showAdvanced) {
+      acceptanceCriteria = "worst-case";
+    }
+    
+    if (showAdvanced) {
+      // Advanced mode: Acceptance Criteria = Stack Mean + Stack Mean - 3σ (combined width)
+      if (acceptanceCriteriaCard && acceptanceCriteriaCard.offsetParent !== null) {
+        const stackMeanBox = document.querySelector('.stats-row:nth-of-type(2) .stat-card[data-column="1"]');
+        const stackMeanMinus3SigmaBox = document.querySelector('.stats-row:nth-of-type(2) .stat-card[data-column="2"]');
+        
+        let combinedWidth = 0;
+        if (stackMeanBox && stackMeanBox.offsetParent !== null && stackMeanMinus3SigmaBox && stackMeanMinus3SigmaBox.offsetParent !== null) {
+          const meanRect = stackMeanBox.getBoundingClientRect();
+          const minus3SigmaRect = stackMeanMinus3SigmaBox.getBoundingClientRect();
+          // Calculate from left edge of first box to right edge of second box
+          combinedWidth = minus3SigmaRect.right - meanRect.left;
+        } else if (stackMeanBox && stackMeanBox.offsetParent !== null) {
+          combinedWidth = stackMeanBox.getBoundingClientRect().width;
+        }
+        
+        if (combinedWidth > 0) {
+          acceptanceCriteriaCard.style.width = combinedWidth + 'px';
+        }
+      }
+      
+      // Achieved Cpk = Stack Mean + 3σ width
+      if (achievedCpkCard && achievedCpkCard.offsetParent !== null) {
+        const stackMeanPlus3SigmaBox = document.querySelector('.stats-row:nth-of-type(2) .stat-card[data-column="3"]');
+        
+        if (stackMeanPlus3SigmaBox && stackMeanPlus3SigmaBox.offsetParent !== null) {
+          const width = stackMeanPlus3SigmaBox.getBoundingClientRect().width;
+          achievedCpkCard.style.width = width + 'px';
+        }
+      }
+      
+      // Pass/Fail = Process Range width and height
+      if (acceptanceCard && acceptanceCard.offsetParent !== null) {
+        const processRangeBox = document.querySelector('.stats-row:nth-of-type(2) .stat-card[data-column="4"]');
+        
+        if (processRangeBox && processRangeBox.offsetParent !== null) {
+          const width = processRangeBox.getBoundingClientRect().width;
+          const height = processRangeBox.getBoundingClientRect().height;
+          acceptanceCard.style.width = width + 'px';
+          acceptanceCard.style.height = height + 'px';
+        }
+      }
+    } else {
+      // Basic mode
+      if (acceptanceCriteria === "worst-case" || acceptanceCriteria === "rss") {
+        // Acceptance Criteria = Stack Mean (col 1) + Stack Mean - Worst Case/RSS (col 2) + Stack Mean + Worst Case/RSS (col 3) combined width
+        if (acceptanceCriteriaCard && acceptanceCriteriaCard.offsetParent !== null) {
+          const stackMeanBox = document.querySelector('.stats-row:nth-of-type(2) .stat-card[data-column="1"]');
+          const col2Box = acceptanceCriteria === "worst-case" 
+            ? document.getElementById("stat-mean-minus-worst-case-card")
+            : document.getElementById("stat-mean-minus-rss-card");
+          const col3Box = acceptanceCriteria === "worst-case"
+            ? document.getElementById("stat-mean-plus-worst-case-card")
+            : document.getElementById("stat-mean-plus-rss-card");
+          
+          let combinedWidth = 0;
+          if (stackMeanBox && stackMeanBox.offsetParent !== null && 
+              col2Box && col2Box.offsetParent !== null && 
+              col3Box && col3Box.offsetParent !== null) {
+            const meanRect = stackMeanBox.getBoundingClientRect();
+            const col3Rect = col3Box.getBoundingClientRect();
+            // Calculate from left edge of first box to right edge of third box
+            combinedWidth = col3Rect.right - meanRect.left;
+          } else if (stackMeanBox && stackMeanBox.offsetParent !== null && col2Box && col2Box.offsetParent !== null) {
+            const meanRect = stackMeanBox.getBoundingClientRect();
+            const col2Rect = col2Box.getBoundingClientRect();
+            combinedWidth = col2Rect.right - meanRect.left;
+          } else if (stackMeanBox && stackMeanBox.offsetParent !== null) {
+            combinedWidth = stackMeanBox.getBoundingClientRect().width;
+          }
+          
+          if (combinedWidth > 0) {
+            acceptanceCriteriaCard.style.width = combinedWidth + 'px';
+          }
+        }
+        
+        // Pass/Fail = Worst Case Tol/RSS Tol (col 4) width, and same height as Acceptance Criteria
+        if (acceptanceCard && acceptanceCard.offsetParent !== null) {
+          const col4Box = acceptanceCriteria === "worst-case"
+            ? document.getElementById("stat-worst-case-tol-card")
+            : document.getElementById("stat-rss-tol-card");
+          
+          if (col4Box && col4Box.offsetParent !== null) {
+            const rect = col4Box.getBoundingClientRect();
+            acceptanceCard.style.width = rect.width + 'px';
+            
+            // Match height with Acceptance Criteria box
+            if (acceptanceCriteriaCard && acceptanceCriteriaCard.offsetParent !== null) {
+              const acceptanceRect = acceptanceCriteriaCard.getBoundingClientRect();
+              acceptanceCard.style.height = acceptanceRect.height + 'px';
+            } else {
+              acceptanceCard.style.height = rect.height + 'px';
+            }
+          }
+        }
+      }
+      
+      // After width alignment, update scale
+      updateDashboardScale();
+    }
+    }, 50);
+  });
 }
 
 export function parseAsymmetry(tol, nominal) {

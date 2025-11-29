@@ -43,7 +43,7 @@ export const analysisSetup = {
     nominalTarget: 163,
     lsl: 162,
     usl: 164,
-    acceptanceCriteria: "",
+    acceptanceCriteria: "worst-case",
   },
   assumptionsContext: {
     functionalDescription: "",

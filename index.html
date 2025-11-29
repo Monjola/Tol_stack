@@ -61,69 +61,97 @@
 
       <section id="dashboard">
         <h2>Dashboard</h2>
-        
-        <!-- Row 1: Specification Limits -->
-        <div class="stats-row">
-          <div class="stat-card" id="stat-nominal-target-card" data-column="1" style="display: none;">
-            <span class="stat-label">Nominal Target</span>
-            <span class="stat-value" id="stat-nominal-target">—</span>
+        <div class="dashboard-container">
+          <!-- Row 1: Specification Limits -->
+          <div class="stats-row">
+            <div class="stat-card" id="stat-nominal-target-card" data-column="1" style="display: none;">
+              <span class="stat-label">Nominal Target</span>
+              <span class="stat-value" id="stat-nominal-target">—</span>
+            </div>
+            <div class="stat-card" id="stat-lsl-card" data-column="2" style="display: none;">
+              <span class="stat-label">Lower Spec Limit (LSL)</span>
+              <span class="stat-value" id="stat-lsl">—</span>
+            </div>
+            <div class="stat-card" id="stat-usl-card" data-column="3" style="display: none;">
+              <span class="stat-label">Upper Spec Limit (USL)</span>
+              <span class="stat-value" id="stat-usl">—</span>
+            </div>
+            <div class="stat-card" id="stat-spec-tolerance-card" data-column="4" style="display: none;">
+              <span class="stat-label">Spec Tolerance (±)</span>
+              <span class="stat-value" id="stat-spec-tolerance">—</span>
+            </div>
           </div>
-          <div class="stat-card" id="stat-lsl-card" data-column="2" style="display: none;">
-            <span class="stat-label">Lower Spec Limit (LSL)</span>
-            <span class="stat-value" id="stat-lsl">—</span>
-          </div>
-          <div class="stat-card" id="stat-usl-card" data-column="3" style="display: none;">
-            <span class="stat-label">Upper Spec Limit (USL)</span>
-            <span class="stat-value" id="stat-usl">—</span>
-          </div>
-          <div class="stat-card" id="stat-spec-tolerance-card" data-column="4" style="display: none;">
-            <span class="stat-label">Spec Tolerance (±)</span>
-            <span class="stat-value" id="stat-spec-tolerance">—</span>
-          </div>
-        </div>
 
-        <!-- Row 2: Analysis Results -->
-        <div class="stats-row">
-          <div class="stat-card" data-column="1">
-            <span class="stat-label">Stack Mean</span>
-            <span class="stat-value" id="stat-mean">0.000</span>
+          <!-- Row 2: Analysis Results -->
+          <div class="stats-row">
+            <div class="stat-card" data-column="1">
+              <span class="stat-label">Stack Mean</span>
+              <span class="stat-value" id="stat-mean">0.000</span>
+            </div>
+            <div class="stat-card advanced-stat" id="stat-mean-minus-3sigma-card" data-column="2" style="display: none;">
+              <span class="stat-label">Stack Mean - 3σ</span>
+              <span class="stat-value" id="stat-mean-minus-3sigma">—</span>
+            </div>
+            <div class="stat-card advanced-stat" id="stat-mean-plus-3sigma-card" data-column="3" style="display: none;">
+              <span class="stat-label">Stack Mean + 3σ</span>
+              <span class="stat-value" id="stat-mean-plus-3sigma">—</span>
+            </div>
+            <div class="stat-card advanced-stat" id="stat-3sigma-card" data-column="4" style="display: none;">
+              <span class="stat-label">Process Range</span>
+              <span class="stat-value" id="stat-3sigma">±0.000</span>
+            </div>
+            <!-- Basic mode with worst case acceptance criteria -->
+            <div class="stat-card basic-stat" id="stat-mean-minus-worst-case-card" data-column="2" style="display: none;">
+              <span class="stat-label">Stack Mean - Worst Case Tol</span>
+              <span class="stat-value" id="stat-mean-minus-worst-case">—</span>
+            </div>
+            <div class="stat-card basic-stat" id="stat-mean-plus-worst-case-card" data-column="3" style="display: none;">
+              <span class="stat-label">Stack Mean + Worst Case Tol</span>
+              <span class="stat-value" id="stat-mean-plus-worst-case">—</span>
+            </div>
+            <div class="stat-card basic-stat" id="stat-worst-case-tol-card" data-column="4" style="display: none;">
+              <span class="stat-label">Worst Case Tol (+/-)</span>
+              <span class="stat-value" id="stat-worst-case-tol">±0.000</span>
+            </div>
+            <!-- Basic mode with RSS acceptance criteria -->
+            <div class="stat-card basic-stat" id="stat-mean-minus-rss-card" data-column="2" style="display: none;">
+              <span class="stat-label">Stack Mean - RSS</span>
+              <span class="stat-value" id="stat-mean-minus-rss">—</span>
+            </div>
+            <div class="stat-card basic-stat" id="stat-mean-plus-rss-card" data-column="3" style="display: none;">
+              <span class="stat-label">Stack Mean + RSS</span>
+              <span class="stat-value" id="stat-mean-plus-rss">—</span>
+            </div>
+            <div class="stat-card basic-stat" id="stat-rss-tol-card" data-column="4" style="display: none;">
+              <span class="stat-label">RSS Tol (+/-)</span>
+              <span class="stat-value" id="stat-rss-tol">±0.000</span>
+            </div>
+            <!-- Legacy boxes (hidden when acceptance criteria is set) -->
+            <div class="stat-card basic-stat" id="stat-worst-case-card" data-column="2">
+              <span class="stat-label">Worst Case</span>
+              <span class="stat-value" id="stat-worst-case">±0.000</span>
+            </div>
+            <div class="stat-card basic-stat" id="stat-rss-card" data-column="3">
+              <span class="stat-label">RSS</span>
+              <span class="stat-value" id="stat-rss">±0.000</span>
+            </div>
           </div>
-          <div class="stat-card advanced-stat" id="stat-mean-minus-3sigma-card" data-column="2" style="display: none;">
-            <span class="stat-label">Stack Mean - 3σ</span>
-            <span class="stat-value" id="stat-mean-minus-3sigma">—</span>
-          </div>
-          <div class="stat-card advanced-stat" id="stat-mean-plus-3sigma-card" data-column="3" style="display: none;">
-            <span class="stat-label">Stack Mean + 3σ</span>
-            <span class="stat-value" id="stat-mean-plus-3sigma">—</span>
-          </div>
-          <div class="stat-card advanced-stat" id="stat-3sigma-card" data-column="4" style="display: none;">
-            <span class="stat-label">Process Range</span>
-            <span class="stat-value" id="stat-3sigma">±0.000</span>
-          </div>
-          <div class="stat-card basic-stat" id="stat-worst-case-card" data-column="2">
-            <span class="stat-label">Worst Case</span>
-            <span class="stat-value" id="stat-worst-case">±0.000</span>
-          </div>
-          <div class="stat-card basic-stat" id="stat-rss-card" data-column="3">
-            <span class="stat-label">RSS</span>
-            <span class="stat-value" id="stat-rss">±0.000</span>
-          </div>
-        </div>
 
-        <!-- Row 3: Acceptance Criteria and Results -->
-        <div class="stats-row">
-          <div class="stat-card" id="stat-acceptance-criteria-card" style="display: none;">
-            <span class="stat-label">Acceptance Criteria</span>
-            <span class="stat-value" id="stat-acceptance-criteria">—</span>
-          </div>
-          <div class="stat-card advanced-stat" id="stat-achieved-cpk-card" style="display: none;">
-            <span class="stat-label">Achieved Cpk</span>
-            <span class="stat-value" id="stat-achieved-cpk">—</span>
-          </div>
-          <div class="stat-card" id="stat-acceptance-card" style="display: none;">
-            <div class="acceptance-result">
-              <span class="acceptance-indicator" id="acceptance-indicator"></span>
-              <span class="stat-value" id="stat-acceptance">—</span>
+          <!-- Row 3: Acceptance Criteria and Results -->
+          <div class="stats-row">
+            <div class="stat-card" id="stat-acceptance-criteria-card" style="display: none;">
+              <span class="stat-label">Acceptance Criteria</span>
+              <span class="stat-value" id="stat-acceptance-criteria">—</span>
+            </div>
+            <div class="stat-card advanced-stat" id="stat-achieved-cpk-card" style="display: none;">
+              <span class="stat-label">Achieved Cpk</span>
+              <span class="stat-value" id="stat-achieved-cpk">—</span>
+            </div>
+            <div class="stat-card" id="stat-acceptance-card" style="display: none;">
+              <div class="acceptance-result">
+                <span class="acceptance-indicator" id="acceptance-indicator"></span>
+                <span class="stat-value" id="stat-acceptance">—</span>
+              </div>
             </div>
           </div>
         </div>

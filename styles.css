@@ -416,6 +416,12 @@ button:hover {
   gap: 1rem;
 }
 
+.dashboard-container {
+  width: 100%;
+  transform-origin: top left;
+  transition: transform 0.2s ease;
+}
+
 .stats-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
@@ -437,7 +443,9 @@ button:hover {
 .acceptance-result {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 0.75rem;
+  height: 100%;
 }
 
 .acceptance-indicator {
@@ -468,10 +476,18 @@ button:hover {
   gap: 0.25rem;
   width: fit-content;
   margin-right: 0.75rem;
+  min-height: fit-content;
 }
 
 .stat-card:last-child {
   margin-right: 0;
+}
+
+/* Pass/Fail box should match height of other boxes */
+#stat-acceptance-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
 }
 
 .stat-label {
