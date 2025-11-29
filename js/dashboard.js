@@ -45,6 +45,8 @@ export function calculateStack() {
   // Always show stack mean
   const statMeanElement = document.getElementById("stat-mean");
   statMeanElement.textContent = stackMean.toFixed(3);
+  // Store sigma for distribution plot
+  statMeanElement.setAttribute("data-sigma", stackSigma);
   
   // Show analysis setup values
   const nominalTarget = analysisSetup.criticalRequirement.nominalTarget;
@@ -325,6 +327,14 @@ export function calculateStack() {
   renderPareto(stackVariance);
   console.log({ stackMean, worstCase, rss: rssValue, standardDeviation: stackSigma, processRange3Sigma: range3, range6Sigma: range6 });
   
+  // Render normal distribution plot in advanced mode
+  if (showAdvanced && stackSigma > 0) {
+    renderDistributionPlot(stackMean, stackSigma, lsl, usl, nominalTarget);
+  } else {
+    const plotContainer = document.getElementById("distribution-plot-container");
+    if (plotContainer) plotContainer.style.display = "none";
+  }
+  
   // Force a reflow to ensure all display changes are applied before measuring
   void document.body.offsetHeight;
   
@@ -375,7 +385,227 @@ function updateDashboardScale() {
 // Update scale on window resize
 window.addEventListener('resize', () => {
   updateDashboardScale();
+  // Redraw distribution plot on resize
+  if (settings.advancedStatisticalMode) {
+    const stackMean = parseFloat(document.getElementById("stat-mean").textContent) || 0;
+    const stackSigma = parseFloat(document.getElementById("stat-mean").getAttribute("data-sigma")) || 0;
+    const lsl = analysisSetup.criticalRequirement.lsl;
+    const usl = analysisSetup.criticalRequirement.usl;
+    const nominalTarget = analysisSetup.criticalRequirement.nominalTarget;
+    if (stackSigma > 0) {
+      renderDistributionPlot(stackMean, stackSigma, lsl, usl, nominalTarget);
+    }
+  }
 });
+
+function renderDistributionPlot(mean, sigma, lsl, usl, nominal) {
+  const canvas = document.getElementById("distribution-plot");
+  const container = document.getElementById("distribution-plot-container");
+  
+  if (!canvas || !container) return;
+  
+  // Show container
+  container.style.display = "block";
+  
+  // Get container dimensions for responsive sizing
+  const containerWidth = container.clientWidth || 600;
+  const canvasWidth = Math.min(containerWidth - 32, 600); // Account for padding
+  const canvasHeight = 300;
+  
+  // Get device pixel ratio for crisp rendering on high-DPI displays
+  const dpr = window.devicePixelRatio || 1;
+  
+  // Set canvas internal resolution (scaled by device pixel ratio)
+  canvas.width = canvasWidth * dpr;
+  canvas.height = canvasHeight * dpr;
+  
+  // Set canvas display size (CSS pixels)
+  canvas.style.width = canvasWidth + 'px';
+  canvas.style.height = canvasHeight + 'px';
+  
+  // Scale the drawing context to match the device pixel ratio
+  const ctx = canvas.getContext("2d");
+  ctx.scale(dpr, dpr);
+  
+  // Clear canvas (using CSS pixel dimensions, not internal resolution)
+  ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+  
+  // Calculate plot bounds
+  const padding = { top: 40, right: 40, bottom: 60, left: 60 };
+  const plotWidth = canvasWidth - padding.left - padding.right;
+  const plotHeight = canvasHeight - padding.top - padding.bottom;
+  
+  // Determine x-axis range (show mean ± 4σ or include LSL/USL if wider)
+  let xMin = mean - 4 * sigma;
+  let xMax = mean + 4 * sigma;
+  
+  if (lsl !== null && lsl !== undefined) {
+    xMin = Math.min(xMin, lsl - 0.5 * sigma);
+  }
+  if (usl !== null && usl !== undefined) {
+    xMax = Math.max(xMax, usl + 0.5 * sigma);
+  }
+  if (nominal !== null && nominal !== undefined) {
+    xMin = Math.min(xMin, nominal - 2 * sigma);
+    xMax = Math.max(xMax, nominal + 2 * sigma);
+  }
+  
+  // Add some padding
+  const xRange = xMax - xMin;
+  xMin -= xRange * 0.1;
+  xMax += xRange * 0.1;
+  
+  // Scale functions
+  const scaleX = (value) => padding.left + ((value - xMin) / (xMax - xMin)) * plotWidth;
+  const scaleY = (value) => padding.top + plotHeight - (value * plotHeight);
+  
+  // Normal distribution PDF: f(x) = (1 / (σ * √(2π))) * e^(-0.5 * ((x - μ) / σ)²)
+  const normalPDF = (x) => {
+    const coefficient = 1 / (sigma * Math.sqrt(2 * Math.PI));
+    const exponent = -0.5 * Math.pow((x - mean) / sigma, 2);
+    return coefficient * Math.exp(exponent);
+  };
+  
+  // Find maximum PDF value for scaling
+  const maxPDF = normalPDF(mean);
+  
+  // Draw grid lines
+  ctx.strokeStyle = "rgba(139, 148, 158, 0.2)";
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 10; i++) {
+    const x = padding.left + (i / 10) * plotWidth;
+    ctx.beginPath();
+    ctx.moveTo(x, padding.top);
+    ctx.lineTo(x, padding.top + plotHeight);
+    ctx.stroke();
+  }
+  
+  // Draw normal distribution curve
+  ctx.strokeStyle = "#58a6ff";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  const numPoints = 200;
+  for (let i = 0; i <= numPoints; i++) {
+    const x = xMin + (i / numPoints) * (xMax - xMin);
+    const y = normalPDF(x) / maxPDF; // Normalize to 0-1
+    const plotX = scaleX(x);
+    const plotY = scaleY(y);
+    
+    if (i === 0) {
+      ctx.moveTo(plotX, plotY);
+    } else {
+      ctx.lineTo(plotX, plotY);
+    }
+  }
+  ctx.stroke();
+  
+  // Fill area under curve
+  ctx.fillStyle = "rgba(88, 166, 255, 0.1)";
+  ctx.lineTo(scaleX(xMax), padding.top + plotHeight);
+  ctx.lineTo(scaleX(xMin), padding.top + plotHeight);
+  ctx.closePath();
+  ctx.fill();
+  
+  // Draw vertical lines
+  const lineHeight = plotHeight;
+  
+  // Collect all markers with their positions for overlap detection
+  const markers = [];
+  
+  // Stack Mean line (blue) - draw line only, no label
+  if (mean !== null && mean !== undefined) {
+    const meanX = scaleX(mean);
+    ctx.strokeStyle = "#58a6ff";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(meanX, padding.top);
+    ctx.lineTo(meanX, padding.top + lineHeight);
+    ctx.stroke();
+    // Don't add to markers - no label needed
+  }
+  
+  // LSL line (red) - draw line first
+  if (lsl !== null && lsl !== undefined) {
+    const lslX = scaleX(lsl);
+    ctx.strokeStyle = "#ff7b72";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(lslX, padding.top);
+    ctx.lineTo(lslX, padding.top + lineHeight);
+    ctx.stroke();
+    
+    markers.push({ x: lslX, label: "LSL", value: lsl.toFixed(3), color: "#ff7b72", isSpecLimit: true });
+  }
+  
+  // USL line (red) - draw line first
+  if (usl !== null && usl !== undefined) {
+    const uslX = scaleX(usl);
+    ctx.strokeStyle = "#ff7b72";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([5, 5]);
+    ctx.beginPath();
+    ctx.moveTo(uslX, padding.top);
+    ctx.lineTo(uslX, padding.top + lineHeight);
+    ctx.stroke();
+    
+    markers.push({ x: uslX, label: "USL", value: usl.toFixed(3), color: "#ff7b72", isSpecLimit: true });
+  }
+  
+  // Add Nominal to markers if it exists
+  if (nominal !== null && nominal !== undefined && nominal >= xMin && nominal <= xMax) {
+    const nominalX = scaleX(nominal);
+    // Draw a small triangle marker on x-axis
+    ctx.strokeStyle = "#f2cc60";
+    ctx.lineWidth = 2;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(nominalX, padding.top + plotHeight);
+    ctx.lineTo(nominalX - 6, padding.top + plotHeight + 10);
+    ctx.lineTo(nominalX + 6, padding.top + plotHeight + 10);
+    ctx.closePath();
+    ctx.fillStyle = "#f2cc60";
+    ctx.fill();
+    ctx.stroke();
+    
+    markers.push({ x: nominalX, label: "Nominal", value: nominal.toFixed(3), color: "#f2cc60", isSpecLimit: false });
+  }
+  
+  // Sort markers by x position
+  markers.sort((a, b) => a.x - b.x);
+  
+  // Draw x-axis
+  ctx.strokeStyle = "#e6edf3";
+  ctx.lineWidth = 1;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(padding.left, padding.top + plotHeight);
+  ctx.lineTo(padding.left + plotWidth, padding.top + plotHeight);
+  ctx.stroke();
+  
+  // Draw all marker labels underneath x-axis
+  const labelYBase = padding.top + lineHeight + 20;
+  const valueYBase = padding.top + lineHeight + 35;
+  
+  markers.forEach((marker) => {
+    ctx.fillStyle = marker.color;
+    ctx.font = "12px 'Inter', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(marker.label, marker.x, labelYBase);
+    ctx.fillText(marker.value, marker.x, valueYBase);
+  });
+  
+  // Draw y-axis label
+  ctx.save();
+  ctx.translate(15, padding.top + plotHeight / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = "#8b949e";
+  ctx.font = "12px 'Inter', sans-serif";
+  ctx.textAlign = "center";
+  ctx.fillText("Probability Density", 0, 0);
+  ctx.restore();
+}
 
 function alignBoxWidths() {
   // Wait for layout to settle, then measure and align

@@ -436,11 +436,43 @@ button:hover {
   gap: 1rem;
 }
 
+#distribution-plot-container {
+  padding: 1rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  min-width: 400px;
+  flex: 1;
+  max-width: 600px;
+  align-self: flex-start;
+  margin-top: 0;
+}
+
+#distribution-plot-container h3 {
+  margin-top: 0;
+  margin-bottom: 0.75rem;
+  color: var(--text);
+  font-size: 1rem;
+}
+
+#distribution-plot {
+  width: 100%;
+  height: auto;
+  display: block;
+}
+
 .dashboard-container {
   width: fit-content;
   transform-origin: top left;
   transition: transform 0.2s ease;
-  display: inline-block;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.dashboard-container > .stats-row {
+  flex: 0 0 auto;
 }
 
 .stats-grid {
@@ -454,6 +486,7 @@ button:hover {
   flex-wrap: wrap;
   gap: 0;
   margin-bottom: 1rem;
+  margin-top: 0;
   align-items: flex-start;
 }
 
