@@ -179,6 +179,11 @@ tbody select {
   background: var(--bg-alt);
   color: var(--text);
   font-size: 0.9rem;
+  box-sizing: border-box;
+}
+
+tbody select {
+  cursor: pointer;
 }
 
 tbody input[type="checkbox"] {

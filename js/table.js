@@ -47,14 +47,16 @@ export function renderTable() {
       <td class="advanced-col float-col" style="text-align:center;"><input type="checkbox" data-key="floatShifted" data-index="${index}" ${row.floatShifted ? "checked" : ""}></td>
     ` : '';
     
+    const direction = row.direction || "+"; // Default to "+" if not set
+    
     tr.innerHTML = `
       <td class="drag-handle" title="Drag to reorder">⋮⋮</td>
       <td><input type="text" data-key="description" data-index="${index}" value="${row.description ?? ""}"></td>
       <td><input type="number" step="0.001" data-key="nominal" data-index="${index}" value="${row.nominal ?? 0}"></td>
-      <td>
-        <select data-key="direction" data-index="${index}">
-          <option value="+" ${row.direction === "+" ? "selected" : ""}>+</option>
-          <option value="-" ${row.direction === "-" ? "selected" : ""}>-</option>
+      <td style="min-width: 80px;">
+        <select data-key="direction" data-index="${index}" style="width: 100%;">
+          <option value="+" ${direction === "+" ? "selected" : ""}>+</option>
+          <option value="-" ${direction === "-" ? "selected" : ""}>-</option>
         </select>
       </td>
       ${toleranceTypeCell}
