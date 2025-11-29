@@ -19,16 +19,35 @@
     <main>
       <section id="canvas-container">
         <h2>Visual Canvas</h2>
-        <input type="file" id="drawing-upload" accept="image/*" />
-        <div class="canvas-wrapper">
-          <img id="drawing-img" alt="Drawing background" />
-          <canvas id="drawing-canvas"></canvas>
+        <div class="canvas-upload-area" id="canvas-upload-area">
+          <input type="file" id="drawing-upload" accept="image/*" style="display: none;">
+          <div class="upload-placeholder" id="canvas-upload-placeholder">
+            <p>Drop image here, paste from clipboard, or click to upload</p>
+            <button type="button" class="secondary" id="canvas-upload-btn">Choose File</button>
+          </div>
+          <div class="canvas-wrapper" id="canvas-wrapper" style="display: none;">
+            <img id="drawing-img" alt="Drawing background" />
+            <canvas id="drawing-canvas"></canvas>
+          </div>
         </div>
         <div class="canvas-controls">
           <span>Click = Balloon · Drag = Arrow</span>
           <button id="clear-annotations" class="secondary">Clear</button>
+          <button id="remove-image-btn" class="secondary" style="display: none;">Remove Image</button>
         </div>
       </section>
+
+      <!-- Confirmation dialog for removing image -->
+      <dialog id="remove-image-confirm-dialog">
+        <form method="dialog">
+          <h3>Remove Image?</h3>
+          <p>Are you sure you want to remove the image? This will also clear all annotations.</p>
+          <div class="table-actions">
+            <button type="submit" id="remove-image-confirm-btn" style="background: var(--danger); border-color: var(--danger);">Remove</button>
+            <button type="button" value="cancel" class="secondary">Cancel</button>
+          </div>
+        </form>
+      </dialog>
 
       <section id="data-grid">
         <h2>Stack Data</h2>

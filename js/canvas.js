@@ -3,6 +3,10 @@ import { annotations, state } from './data.js';
 // Canvas setup and drawing functions
 export function setupCanvas() {
   const uploadInput = document.getElementById("drawing-upload");
+  const uploadBtn = document.getElementById("canvas-upload-btn");
+  const uploadArea = document.getElementById("canvas-upload-area");
+  const uploadPlaceholder = document.getElementById("canvas-upload-placeholder");
+  const canvasWrapper = document.getElementById("canvas-wrapper");
   const img = document.getElementById("drawing-img");
   const canvas = document.getElementById("drawing-canvas");
   const clearBtn = document.getElementById("clear-annotations");
@@ -16,26 +20,153 @@ export function setupCanvas() {
   canvas.addEventListener("pointerup", handlePointerUp);
   canvas.addEventListener("pointerleave", handlePointerUp);
 
+  // File upload button click
+  if (uploadBtn) {
+    uploadBtn.addEventListener("click", () => {
+      uploadInput.click();
+    });
+  }
+
+  // File upload via input
   uploadInput.addEventListener("change", (event) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    loadImageFromFile(file, img, uploadPlaceholder, canvasWrapper);
+  });
 
-    const reader = new FileReader();
-    reader.onload = () => {
-      img.src = reader.result;
-    };
-    reader.readAsDataURL(file);
+  // Drag and drop
+  if (uploadArea) {
+    uploadArea.addEventListener("dragover", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.classList.add("drag-over");
+    });
+
+    uploadArea.addEventListener("dragleave", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.classList.remove("drag-over");
+    });
+
+    uploadArea.addEventListener("drop", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      uploadArea.classList.remove("drag-over");
+
+      const files = e.dataTransfer.files;
+      if (files.length > 0) {
+        const file = files[0];
+        if (file.type.startsWith("image/")) {
+          loadImageFromFile(file, img, uploadPlaceholder, canvasWrapper);
+        }
+      }
+    });
+  }
+
+  // Paste from clipboard
+  document.addEventListener("paste", (e) => {
+    const items = e.clipboardData?.items;
+    if (!items) return;
+
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      if (item.type.indexOf("image") !== -1) {
+        e.preventDefault();
+        const file = item.getAsFile();
+        if (file) {
+          loadImageFromFile(file, img, uploadPlaceholder, canvasWrapper);
+        }
+        break;
+      }
+    }
   });
 
   clearBtn.addEventListener("click", () => {
     annotations.length = 0;
     redrawAnnotations();
   });
+
+  // Remove image button
+  const removeImageBtn = document.getElementById("remove-image-btn");
+  const removeImageDialog = document.getElementById("remove-image-confirm-dialog");
+  const removeImageConfirmBtn = document.getElementById("remove-image-confirm-btn");
+
+  if (removeImageBtn && removeImageDialog && removeImageConfirmBtn) {
+    removeImageBtn.addEventListener("click", () => {
+      removeImageDialog.showModal();
+    });
+
+    removeImageConfirmBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      removeImage(img, uploadPlaceholder, canvasWrapper, removeImageBtn);
+      removeImageDialog.close();
+    });
+
+    // Handle cancel button
+    const cancelBtn = removeImageDialog.querySelector('button[value="cancel"]');
+    if (cancelBtn) {
+      cancelBtn.addEventListener("click", () => {
+        removeImageDialog.close();
+      });
+    }
+  }
+}
+
+function removeImage(imgElement, placeholder, wrapper, removeBtn) {
+  // Clear image source
+  imgElement.src = "";
+  
+  // Clear annotations
+  annotations.length = 0;
+  
+  // Hide canvas wrapper and show placeholder
+  if (wrapper) wrapper.style.display = "none";
+  if (placeholder) placeholder.style.display = "flex";
+  if (removeBtn) removeBtn.style.display = "none";
+  
+  // Clear canvas
+  if (state.ctx) {
+    state.ctx.clearRect(0, 0, state.canvas.width, state.canvas.height);
+  }
+  
+  // Reset file input
+  const uploadInput = document.getElementById("drawing-upload");
+  if (uploadInput) uploadInput.value = "";
+}
+
+function loadImageFromFile(file, imgElement, placeholder, wrapper) {
+  const reader = new FileReader();
+  reader.onload = () => {
+    // Hide placeholder and show canvas wrapper first
+    if (placeholder) placeholder.style.display = "none";
+    if (wrapper) wrapper.style.display = "block";
+    
+    // Show remove image button
+    const removeBtn = document.getElementById("remove-image-btn");
+    if (removeBtn) removeBtn.style.display = "block";
+    
+    // Set image source
+    imgElement.src = reader.result;
+    
+    // Resize canvas after image loads
+    imgElement.onload = () => {
+      resizeCanvas();
+    };
+    
+    // If image is already loaded (cached), trigger resize immediately
+    if (imgElement.complete) {
+      resizeCanvas();
+    }
+  };
+  reader.readAsDataURL(file);
 }
 
 export function resizeCanvas() {
   if (!state.canvas) return;
-  const rect = state.canvas.parentElement.getBoundingClientRect();
+  const canvasWrapper = document.getElementById("canvas-wrapper");
+  if (!canvasWrapper || canvasWrapper.style.display === "none") return;
+  
+  const rect = canvasWrapper.getBoundingClientRect();
   state.canvas.width = rect.width;
   state.canvas.height = rect.height;
   state.canvas.style.width = `${rect.width}px`;

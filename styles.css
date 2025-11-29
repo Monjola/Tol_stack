@@ -67,13 +67,33 @@ section {
   gap: 0.75rem;
 }
 
-#canvas-container input[type="file"] {
+.canvas-upload-area {
+  position: relative;
   width: 100%;
-  border: 1px dashed var(--border);
-  padding: 0.75rem;
+  min-height: 200px;
+  border: 2px dashed var(--border);
   border-radius: 0.5rem;
   background: var(--bg-alt);
-  color: var(--text);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.canvas-upload-area.drag-over {
+  border-color: var(--accent);
+  background-color: rgba(88, 166, 255, 0.05);
+}
+
+.canvas-upload-area .upload-placeholder {
+  text-align: center;
+  padding: 2rem;
+  color: var(--muted);
+}
+
+.canvas-upload-area .upload-placeholder p {
+  margin: 0 0 1rem 0;
+  font-size: 0.9rem;
 }
 
 .canvas-wrapper {
