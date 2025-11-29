@@ -51,6 +51,7 @@ export function renderTable() {
     
     tr.innerHTML = `
       <td class="drag-handle" title="Drag to reorder">⋮⋮</td>
+      <td class="item-number" style="text-align: center; color: var(--muted);">${index + 1}</td>
       <td><input type="text" data-key="description" data-index="${index}" value="${row.description ?? ""}"></td>
       <td><input type="number" step="0.001" data-key="nominal" data-index="${index}" value="${row.nominal ?? 0}"></td>
       <td style="min-width: 80px;">

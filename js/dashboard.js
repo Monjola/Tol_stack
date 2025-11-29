@@ -151,12 +151,15 @@ function renderPareto(totalVariance) {
   const barsWrap = document.createElement("div");
   barsWrap.className = "pareto-bars";
 
+  const labelsWrap = document.createElement("div");
+  labelsWrap.className = "pareto-labels";
+
   let cumulative = 0;
   const barHeight = 220; // Match CSS height
 
   sorted.forEach((entry, index) => {
-    const wrapper = document.createElement("div");
-    wrapper.className = "bar-container";
+    const barContainer = document.createElement("div");
+    barContainer.className = "bar-container";
 
     const bar = document.createElement("div");
     bar.className = "bar";
@@ -174,13 +177,15 @@ function renderPareto(totalVariance) {
     const isVitalFew = cumulative <= 80;
     fill.style.background = isVitalFew ? "var(--danger)" : "var(--accent)";
 
+    bar.appendChild(fill);
+    barContainer.appendChild(bar);
+    barsWrap.appendChild(barContainer);
+
+    // Create label outside the chart wrapper
     const valueLabel = document.createElement("div");
     valueLabel.className = "bar-label";
     valueLabel.textContent = `${entry.description} · ${entry.percent.toFixed(1)}%`;
-
-    bar.appendChild(fill);
-    wrapper.append(bar, valueLabel);
-    barsWrap.appendChild(wrapper);
+    labelsWrap.appendChild(valueLabel);
   });
   
   // Reset cumulative for line calculation
@@ -189,8 +194,17 @@ function renderPareto(totalVariance) {
   chartWrapper.appendChild(yAxis);
   chartWrapper.appendChild(barsWrap);
 
-  // Append chart wrapper first so we can measure their actual positions
+  // Create a wrapper for labels that matches the chart wrapper structure
+  const labelsWrapper = document.createElement("div");
+  labelsWrapper.className = "pareto-labels-wrapper";
+  const labelsSpacer = document.createElement("div");
+  labelsSpacer.className = "pareto-labels-spacer";
+  labelsWrapper.appendChild(labelsSpacer);
+  labelsWrapper.appendChild(labelsWrap);
+
+  // Append chart wrapper and labels
   container.appendChild(chartWrapper);
+  container.appendChild(labelsWrapper);
 
   // Use requestAnimationFrame to ensure layout is complete
   requestAnimationFrame(() => {
@@ -202,7 +216,7 @@ function renderPareto(totalVariance) {
     sorted.forEach((entry, index) => {
       cumulative += entry.percent;
       const barContainer = barContainers[index];
-      const barRect = barContainer.querySelector('.bar').getBoundingClientRect();
+      const barRect = barContainer.getBoundingClientRect();
       const barsRect = barsWrap.getBoundingClientRect();
       const x = barRect.left - barsRect.left + (barRect.width / 2);
       const y = barHeight - (cumulative / 100 * barHeight);
