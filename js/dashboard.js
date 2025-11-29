@@ -7,8 +7,12 @@ export function setupDashboard() {
 
 export function calculateStack() {
   // Ensure default acceptance criteria is set before calculations
-  if (!analysisSetup.criticalRequirement.acceptanceCriteria && !settings.advancedStatisticalMode) {
-    analysisSetup.criticalRequirement.acceptanceCriteria = "worst-case";
+  if (!analysisSetup.criticalRequirement.acceptanceCriteria) {
+    if (settings.advancedStatisticalMode) {
+      analysisSetup.criticalRequirement.acceptanceCriteria = "cpk-1.33";
+    } else {
+      analysisSetup.criticalRequirement.acceptanceCriteria = "worst-case";
+    }
   }
   
   let stackMean = 0;
@@ -122,10 +126,20 @@ export function calculateStack() {
     document.getElementById("stat-mean-plus-3sigma-card").style.display = 'none';
   }
   
-  // Evaluate acceptance criteria (default to "worst-case" in basic mode if not set)
+  // Evaluate acceptance criteria (default based on mode if not set or invalid for current mode)
   let acceptanceCriteria = analysisSetup.criticalRequirement.acceptanceCriteria;
-  if (!acceptanceCriteria && !showAdvanced) {
-    acceptanceCriteria = "worst-case";
+  const isAdvancedCriteria = acceptanceCriteria && acceptanceCriteria.startsWith("cpk-");
+  const isBasicCriteria = acceptanceCriteria === "worst-case" || acceptanceCriteria === "rss";
+  
+  if (!acceptanceCriteria || (showAdvanced && !isAdvancedCriteria) || (!showAdvanced && !isBasicCriteria)) {
+    // Set default based on current mode
+    if (showAdvanced) {
+      acceptanceCriteria = "cpk-1.33";
+      analysisSetup.criticalRequirement.acceptanceCriteria = "cpk-1.33";
+    } else {
+      acceptanceCriteria = "worst-case";
+      analysisSetup.criticalRequirement.acceptanceCriteria = "worst-case";
+    }
   }
   const acceptanceCriteriaCard = document.getElementById("stat-acceptance-criteria-card");
   const acceptanceCriteriaValue = document.getElementById("stat-acceptance-criteria");
@@ -376,9 +390,13 @@ function alignBoxWidths() {
     const acceptanceCard = document.getElementById("stat-acceptance-card");
     const showAdvanced = settings.advancedStatisticalMode;
     let acceptanceCriteria = analysisSetup.criticalRequirement.acceptanceCriteria;
-    // Default to "worst-case" in basic mode if not set
-    if (!acceptanceCriteria && !showAdvanced) {
-      acceptanceCriteria = "worst-case";
+    // Default based on mode if not set
+    if (!acceptanceCriteria) {
+      if (showAdvanced) {
+        acceptanceCriteria = "cpk-1.33";
+      } else {
+        acceptanceCriteria = "worst-case";
+      }
     }
     
     if (showAdvanced) {

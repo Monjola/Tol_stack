@@ -1,4 +1,4 @@
-import { settings } from './data.js';
+import { settings, analysisSetup } from './data.js';
 import { refreshTable } from './table.js';
 import { calculateStack } from './dashboard.js';
 
@@ -21,6 +21,21 @@ export function setupSettings() {
   // Handle advanced statistical mode (combines Cpk column and statistical output)
   document.getElementById("setting-advanced-statistical-mode").addEventListener("change", (e) => {
     settings.advancedStatisticalMode = e.target.checked;
+    
+    // Update acceptance criteria to match the new mode
+    const currentCriteria = analysisSetup.criticalRequirement.acceptanceCriteria;
+    const isAdvancedCriteria = currentCriteria && currentCriteria.startsWith("cpk-");
+    const isBasicCriteria = currentCriteria === "worst-case" || currentCriteria === "rss";
+    
+    // If switching to advanced mode and current criteria is basic (or empty), set default
+    if (e.target.checked && (!currentCriteria || isBasicCriteria)) {
+      analysisSetup.criticalRequirement.acceptanceCriteria = "cpk-1.33";
+    }
+    // If switching to basic mode and current criteria is advanced (or empty), set default
+    else if (!e.target.checked && (!currentCriteria || isAdvancedCriteria)) {
+      analysisSetup.criticalRequirement.acceptanceCriteria = "worst-case";
+    }
+    
     refreshTable();
     calculateStack(); // Recalculate to show/hide stats
   });

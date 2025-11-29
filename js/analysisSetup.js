@@ -60,7 +60,9 @@ function loadAnalysisSetupData() {
   document.getElementById("analysis-nominal-target").value = analysisSetup.criticalRequirement.nominalTarget ?? "";
   document.getElementById("analysis-lsl").value = analysisSetup.criticalRequirement.lsl ?? "";
   document.getElementById("analysis-usl").value = analysisSetup.criticalRequirement.usl ?? "";
-  document.getElementById("analysis-acceptance-criteria").value = analysisSetup.criticalRequirement.acceptanceCriteria || "worst-case";
+  // Default based on mode if not set
+  const defaultValue = settings.advancedStatisticalMode ? "cpk-1.33" : "worst-case";
+  document.getElementById("analysis-acceptance-criteria").value = analysisSetup.criticalRequirement.acceptanceCriteria || defaultValue;
   
   // Assumptions Context
   document.getElementById("analysis-functional-description").value = analysisSetup.assumptionsContext.functionalDescription || "";
@@ -131,7 +133,7 @@ function updateAcceptanceCriteriaOptions() {
     });
   }
   
-  // If current value doesn't exist in new options, default to "worst-case" in basic mode or first option in advanced mode
+  // If current value doesn't exist in new options, default based on mode
   if (!select.value && select.options.length > 0) {
     if (!settings.advancedStatisticalMode) {
       // In basic mode, default to "worst-case"
@@ -142,7 +144,13 @@ function updateAcceptanceCriteriaOptions() {
         select.selectedIndex = 0;
       }
     } else {
-      select.selectedIndex = 0;
+      // In advanced mode, default to "cpk-1.33"
+      const cpk133Option = Array.from(select.options).find(opt => opt.value === "cpk-1.33");
+      if (cpk133Option) {
+        cpk133Option.selected = true;
+      } else {
+        select.selectedIndex = 0;
+      }
     }
   }
 }
