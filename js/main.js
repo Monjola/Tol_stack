@@ -4,6 +4,7 @@ import { setupDashboard } from './dashboard.js';
 import { setupSettings } from './settings.js';
 import { setupAnalysisSetup } from './analysisSetup.js';
 import { setupHelp } from './help.js';
+import { setupSaveLoad } from './saveLoad.js';
 
 // Main initialization
 document.addEventListener("DOMContentLoaded", () => {
@@ -13,5 +14,6 @@ document.addEventListener("DOMContentLoaded", () => {
   setupSettings();
   setupAnalysisSetup();
   setupHelp();
+  setupSaveLoad();
 });
 
