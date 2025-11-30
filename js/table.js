@@ -12,7 +12,7 @@ export function setupTable() {
       direction: "+", // Default direction
       tol: 0,
       tolType: "Linear", // Default, but hidden in simple mode
-      cpk: 1.33, // Default, but hidden in simple mode
+      cpk: 1, // Default, but hidden in simple mode
       floatShifted: false, // Default, but hidden in simple mode
       notes: "", // Empty notes for new rows
       source: null, // Empty source for new rows
@@ -45,7 +45,7 @@ export function renderTable() {
     ` : '';
     
     const cpkCell = settings.advancedStatisticalMode ? `
-      <td class="advanced-col cpk-col"><input type="number" step="0.01" data-key="cpk" data-index="${index}" value="${row.cpk ?? 1.33}"></td>
+      <td class="advanced-col cpk-col"><input type="number" step="0.01" data-key="cpk" data-index="${index}" value="${row.cpk ?? 1}"></td>
     ` : '';
     
     const floatCell = settings.showFloatShifted ? `

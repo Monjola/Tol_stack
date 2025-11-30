@@ -179,9 +179,16 @@
           
           <!-- Normal Distribution Plot (Advanced Mode Only) -->
           <div class="advanced-stat" id="distribution-plot-container" style="display: none;">
-            <h3>Normal Distribution</h3>
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.75rem;">
+              <h3 style="margin: 0;">Normal Distribution</h3>
+              <label style="display: flex; align-items: center; gap: 0.5rem; cursor: pointer; user-select: none;">
+                <input type="checkbox" id="process-drift-toggle" style="cursor: pointer;">
+                <span style="font-size: 0.875rem; color: var(--muted);">Simulate long term process drift</span>
+              </label>
+            </div>
             <canvas id="distribution-plot" width="600" height="300"></canvas>
           </div>
+          <div class="advanced-stat" id="distribution-plot-stats" style="display: none;"></div>
         </div>
         <h3>Pareto Contributions</h3>
         <div class="pareto-info">

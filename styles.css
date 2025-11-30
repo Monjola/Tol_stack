@@ -442,8 +442,8 @@ button:hover {
   border: 1px solid var(--border);
   border-radius: 0.5rem;
   min-width: 400px;
-  flex: 1;
-  max-width: 600px;
+  width: 100%;
+  max-width: 100%;
   align-self: flex-start;
   margin-top: 0;
 }
@@ -453,6 +453,14 @@ button:hover {
   margin-bottom: 0.75rem;
   color: var(--text);
   font-size: 1rem;
+}
+
+#distribution-plot-stats {
+  margin-top: 1rem;
+  padding: 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
 }
 
 #distribution-plot {

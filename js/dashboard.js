@@ -30,7 +30,7 @@ export function calculateStack() {
     rss += tolAdj ** 2;
     
     // For advanced stats with Cpk
-    const cpk = row.cpk || 1.33;
+    const cpk = row.cpk || 1;
     const rowSigma = tolAdj / (3 * cpk || 1);
     stackVariance += rowSigma ** 2;
   });
@@ -329,10 +329,31 @@ export function calculateStack() {
   
   // Render normal distribution plot in advanced mode
   if (showAdvanced && stackSigma > 0) {
+    // Hide all stat boxes in advanced mode - focus on the distribution plot
+    const allStatCards = document.querySelectorAll('.stat-card');
+    allStatCards.forEach(card => {
+      card.style.display = 'none';
+    });
+    
+    // Hide the dashboard container rows
+    const statsRows = document.querySelectorAll('.stats-row');
+    statsRows.forEach(row => {
+      row.style.display = 'none';
+    });
+    
     renderDistributionPlot(stackMean, stackSigma, lsl, usl, nominalTarget);
+    setupDriftToggle();
   } else {
     const plotContainer = document.getElementById("distribution-plot-container");
     if (plotContainer) plotContainer.style.display = "none";
+    const statsContainer = document.getElementById("distribution-plot-stats");
+    if (statsContainer) statsContainer.style.display = "none";
+    
+    // Show stat boxes in basic mode (they're shown/hidden individually based on acceptance criteria)
+    const statsRows = document.querySelectorAll('.stats-row');
+    statsRows.forEach(row => {
+      row.style.display = 'flex';
+    });
   }
   
   // Force a reflow to ensure all display changes are applied before measuring
@@ -398,19 +419,78 @@ window.addEventListener('resize', () => {
   }
 });
 
+// Setup process drift toggle event listener (called when plot is first rendered)
+function setupDriftToggle() {
+  const driftToggle = document.getElementById("process-drift-toggle");
+  if (driftToggle && !driftToggle.hasAttribute("data-listener-attached")) {
+    driftToggle.setAttribute("data-listener-attached", "true");
+    driftToggle.addEventListener("change", () => {
+      if (settings.advancedStatisticalMode) {
+        const stackMean = parseFloat(document.getElementById("stat-mean").textContent) || 0;
+        const stackSigma = parseFloat(document.getElementById("stat-mean").getAttribute("data-sigma")) || 0;
+        const lsl = analysisSetup.criticalRequirement.lsl;
+        const usl = analysisSetup.criticalRequirement.usl;
+        const nominalTarget = analysisSetup.criticalRequirement.nominalTarget;
+        if (stackSigma > 0) {
+          renderDistributionPlot(stackMean, stackSigma, lsl, usl, nominalTarget);
+        }
+      }
+    });
+  }
+}
+
 function renderDistributionPlot(mean, sigma, lsl, usl, nominal) {
   const canvas = document.getElementById("distribution-plot");
   const container = document.getElementById("distribution-plot-container");
   
   if (!canvas || !container) return;
   
-  // Show container
+  // Show container and stats container
   container.style.display = "block";
+  const statsContainer = document.getElementById("distribution-plot-stats");
+  if (statsContainer) statsContainer.style.display = "block";
   
-  // Get container dimensions for responsive sizing
-  const containerWidth = container.clientWidth || 600;
-  const canvasWidth = Math.min(containerWidth - 32, 600); // Account for padding
-  const canvasHeight = 300;
+  // Check if process drift toggle is enabled
+  const driftToggle = document.getElementById("process-drift-toggle");
+  const applyDrift = driftToggle && driftToggle.checked;
+  
+  // Calculate shifted mean if drift is enabled
+  let displayMean = mean;
+  let shiftDirection = null;
+  if (applyDrift && sigma > 0) {
+    const shift = 1.5 * sigma;
+    // Determine which spec limit is closer
+    if (lsl !== null && lsl !== undefined && usl !== null && usl !== undefined) {
+      const distanceToLSL = mean - lsl;
+      const distanceToUSL = usl - mean;
+      if (distanceToLSL < distanceToUSL) {
+        displayMean = mean - shift;
+        shiftDirection = 'LSL';
+      } else {
+        displayMean = mean + shift;
+        shiftDirection = 'USL';
+      }
+    } else if (lsl !== null && lsl !== undefined) {
+      displayMean = mean - shift;
+      shiftDirection = 'LSL';
+    } else if (usl !== null && usl !== undefined) {
+      displayMean = mean + shift;
+      shiftDirection = 'USL';
+    }
+  }
+  
+  // Calculate Cpk for display (will be calculated after we determine closest spec limit)
+  let achievedCpk = null;
+  let cpkNumerator = null;
+  let cpkDenominator = null;
+  let closestSpecLabel = null;
+  
+  // Get container dimensions for responsive sizing - make it larger in advanced mode
+  const containerWidth = container.clientWidth || 800;
+  const canvasWidth = Math.min(containerWidth - 32, 1200); // Larger width for advanced mode
+  const extraTopSpace = 60; // Space for Cpk text above the graph
+  const extraBottomSpace = 80; // Space for statistics below the graph
+  const canvasHeight = 500 + extraTopSpace + extraBottomSpace; // Taller to accommodate text above and below
   
   // Get device pixel ratio for crisp rendering on high-DPI displays
   const dpr = window.devicePixelRatio || 1;
@@ -430,14 +510,14 @@ function renderDistributionPlot(mean, sigma, lsl, usl, nominal) {
   // Clear canvas (using CSS pixel dimensions, not internal resolution)
   ctx.clearRect(0, 0, canvasWidth, canvasHeight);
   
-  // Calculate plot bounds
-  const padding = { top: 40, right: 40, bottom: 60, left: 60 };
+  // Calculate plot bounds - add extra space at top for Cpk text and bottom for statistics
+  const padding = { top: 40 + extraTopSpace, right: 40, bottom: 60 + extraBottomSpace, left: 60 };
   const plotWidth = canvasWidth - padding.left - padding.right;
   const plotHeight = canvasHeight - padding.top - padding.bottom;
   
-  // Determine x-axis range (show mean ± 4σ or include LSL/USL if wider)
-  let xMin = mean - 4 * sigma;
-  let xMax = mean + 4 * sigma;
+  // Determine x-axis range (show displayMean ± 4σ or include LSL/USL if wider)
+  let xMin = displayMean - 4 * sigma;
+  let xMax = displayMean + 4 * sigma;
   
   if (lsl !== null && lsl !== undefined) {
     xMin = Math.min(xMin, lsl - 0.5 * sigma);
@@ -462,12 +542,12 @@ function renderDistributionPlot(mean, sigma, lsl, usl, nominal) {
   // Normal distribution PDF: f(x) = (1 / (σ * √(2π))) * e^(-0.5 * ((x - μ) / σ)²)
   const normalPDF = (x) => {
     const coefficient = 1 / (sigma * Math.sqrt(2 * Math.PI));
-    const exponent = -0.5 * Math.pow((x - mean) / sigma, 2);
+    const exponent = -0.5 * Math.pow((x - displayMean) / sigma, 2);
     return coefficient * Math.exp(exponent);
   };
   
   // Find maximum PDF value for scaling
-  const maxPDF = normalPDF(mean);
+  const maxPDF = normalPDF(displayMean);
   
   // Draw grid lines
   ctx.strokeStyle = "rgba(139, 148, 158, 0.2)";
@@ -512,9 +592,9 @@ function renderDistributionPlot(mean, sigma, lsl, usl, nominal) {
   // Collect all markers with their positions for overlap detection
   const markers = [];
   
-  // Stack Mean line (blue) - draw line only, no label
-  if (mean !== null && mean !== undefined) {
-    const meanX = scaleX(mean);
+  // Stack Mean line (blue) - full height with label and value at top
+  if (displayMean !== null && displayMean !== undefined) {
+    const meanX = scaleX(displayMean);
     ctx.strokeStyle = "#58a6ff";
     ctx.lineWidth = 2;
     ctx.setLineDash([]);
@@ -522,7 +602,198 @@ function renderDistributionPlot(mean, sigma, lsl, usl, nominal) {
     ctx.moveTo(meanX, padding.top);
     ctx.lineTo(meanX, padding.top + lineHeight);
     ctx.stroke();
-    // Don't add to markers - no label needed
+    
+    // Add "Mean" label and value at the top
+    ctx.fillStyle = "#58a6ff";
+    ctx.font = "12px 'Inter', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Mean", meanX, padding.top - 25);
+    ctx.fillText(displayMean.toFixed(2), meanX, padding.top - 10);
+  }
+  
+  // Mean - 3σ line (partial height, crosses x-axis)
+  let meanMinus3SigmaX = null;
+  let meanPlus3SigmaX = null;
+  if (displayMean !== null && displayMean !== undefined && sigma > 0) {
+    const meanMinus3Sigma = displayMean - 3 * sigma;
+    meanMinus3SigmaX = scaleX(meanMinus3Sigma);
+    ctx.strokeStyle = "#58a6ff";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    // Start from x-axis, go up a bit
+    ctx.moveTo(meanMinus3SigmaX, padding.top + plotHeight);
+    ctx.lineTo(meanMinus3SigmaX, padding.top + plotHeight - 40);
+    ctx.stroke();
+    
+    markers.push({ x: meanMinus3SigmaX, label: "-3σ", value: meanMinus3Sigma.toFixed(2), color: "#58a6ff", isSpecLimit: false });
+  }
+  
+  // Mean + 3σ line (partial height, crosses x-axis)
+  if (displayMean !== null && displayMean !== undefined && sigma > 0) {
+    const meanPlus3Sigma = displayMean + 3 * sigma;
+    meanPlus3SigmaX = scaleX(meanPlus3Sigma);
+    ctx.strokeStyle = "#58a6ff";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([3, 3]);
+    ctx.beginPath();
+    // Start from x-axis, go up a bit
+    ctx.moveTo(meanPlus3SigmaX, padding.top + plotHeight);
+    ctx.lineTo(meanPlus3SigmaX, padding.top + plotHeight - 40);
+    ctx.stroke();
+    
+    markers.push({ x: meanPlus3SigmaX, label: "+3σ", value: meanPlus3Sigma.toFixed(2), color: "#58a6ff", isSpecLimit: false });
+  }
+  
+  // Draw horizontal double-sided arrow between mean and 3σ on the side closer to spec limit
+  if (displayMean !== null && displayMean !== undefined && sigma > 0 && meanMinus3SigmaX !== null && meanPlus3SigmaX !== null) {
+    const meanX = scaleX(displayMean);
+    const distance3Sigma = 3 * sigma;
+    const arrowY = padding.top + plotHeight - 60; // Position arrow above the partial lines
+    
+    // Determine which side is closer to a spec limit
+    let drawOnLeft = false;
+    if (lsl !== null && lsl !== undefined && usl !== null && usl !== undefined) {
+      const distanceToLSL = Math.abs(mean - 3 * sigma - lsl);
+      const distanceToUSL = Math.abs(mean + 3 * sigma - usl);
+      drawOnLeft = distanceToLSL < distanceToUSL;
+    } else if (lsl !== null && lsl !== undefined) {
+      drawOnLeft = true; // Only LSL exists, draw on left
+    } else if (usl !== null && usl !== undefined) {
+      drawOnLeft = false; // Only USL exists, draw on right
+    } else {
+      drawOnLeft = false; // Default to right if no spec limits
+    }
+    
+    let arrowStartX, arrowEndX;
+    if (drawOnLeft) {
+      arrowStartX = meanMinus3SigmaX;
+      arrowEndX = meanX;
+    } else {
+      arrowStartX = meanX;
+      arrowEndX = meanPlus3SigmaX;
+    }
+    
+    // Draw horizontal line
+    ctx.strokeStyle = "#58a6ff";
+    ctx.lineWidth = 1.5;
+    ctx.setLineDash([]);
+    ctx.beginPath();
+    ctx.moveTo(arrowStartX, arrowY);
+    ctx.lineTo(arrowEndX, arrowY);
+    ctx.stroke();
+    
+    // Draw arrowhead on left side
+    const arrowSize = 6;
+    ctx.beginPath();
+    ctx.moveTo(arrowStartX, arrowY);
+    ctx.lineTo(arrowStartX + arrowSize, arrowY - arrowSize);
+    ctx.lineTo(arrowStartX + arrowSize, arrowY + arrowSize);
+    ctx.closePath();
+    ctx.fillStyle = "#58a6ff";
+    ctx.fill();
+    
+    // Draw arrowhead on right side
+    ctx.beginPath();
+    ctx.moveTo(arrowEndX, arrowY);
+    ctx.lineTo(arrowEndX - arrowSize, arrowY - arrowSize);
+    ctx.lineTo(arrowEndX - arrowSize, arrowY + arrowSize);
+    ctx.closePath();
+    ctx.fill();
+    
+    // Draw distance value above the arrow
+    const midX = (arrowStartX + arrowEndX) / 2;
+    ctx.fillStyle = "#58a6ff";
+    ctx.font = "11px 'Inter', sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText(distance3Sigma.toFixed(2), midX, arrowY - 8);
+  }
+  
+  // Draw horizontal double-sided arrow between mean and closest spec limit
+  if (displayMean !== null && displayMean !== undefined) {
+    const meanX = scaleX(displayMean);
+    let closestSpecX = null;
+    let closestSpecDistance = null;
+    let closestSpecColor = null;
+    
+    // Determine which spec limit is closer to displayMean and calculate Cpk values
+    if (lsl !== null && lsl !== undefined && usl !== null && usl !== undefined && sigma > 0) {
+      const distanceToLSL = Math.abs(displayMean - lsl);
+      const distanceToUSL = Math.abs(displayMean - usl);
+      if (distanceToLSL < distanceToUSL) {
+        closestSpecX = scaleX(lsl);
+        closestSpecDistance = distanceToLSL;
+        closestSpecColor = "#ff7b72";
+        closestSpecLabel = "LSL";
+        cpkNumerator = displayMean - lsl;
+        cpkDenominator = 3 * sigma;
+        achievedCpk = cpkNumerator / cpkDenominator;
+      } else {
+        closestSpecX = scaleX(usl);
+        closestSpecDistance = distanceToUSL;
+        closestSpecColor = "#ff7b72";
+        closestSpecLabel = "USL";
+        cpkNumerator = usl - displayMean;
+        cpkDenominator = 3 * sigma;
+        achievedCpk = cpkNumerator / cpkDenominator;
+      }
+    } else if (lsl !== null && lsl !== undefined && sigma > 0) {
+      closestSpecX = scaleX(lsl);
+      closestSpecDistance = Math.abs(displayMean - lsl);
+      closestSpecColor = "#ff7b72";
+      closestSpecLabel = "LSL";
+      cpkNumerator = displayMean - lsl;
+      cpkDenominator = 3 * sigma;
+      achievedCpk = cpkNumerator / cpkDenominator;
+    } else if (usl !== null && usl !== undefined && sigma > 0) {
+      closestSpecX = scaleX(usl);
+      closestSpecDistance = Math.abs(displayMean - usl);
+      closestSpecColor = "#ff7b72";
+      closestSpecLabel = "USL";
+      cpkNumerator = usl - displayMean;
+      cpkDenominator = 3 * sigma;
+      achievedCpk = cpkNumerator / cpkDenominator;
+    }
+    
+    if (closestSpecX !== null && closestSpecDistance !== null) {
+      const arrowY = padding.top + plotHeight - 100; // Higher up than the 3σ arrow
+      const arrowStartX = Math.min(meanX, closestSpecX);
+      const arrowEndX = Math.max(meanX, closestSpecX);
+      
+      // Draw horizontal line
+      ctx.strokeStyle = closestSpecColor;
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(arrowStartX, arrowY);
+      ctx.lineTo(arrowEndX, arrowY);
+      ctx.stroke();
+      
+      // Draw arrowhead on left side
+      const arrowSize = 6;
+      ctx.beginPath();
+      ctx.moveTo(arrowStartX, arrowY);
+      ctx.lineTo(arrowStartX + arrowSize, arrowY - arrowSize);
+      ctx.lineTo(arrowStartX + arrowSize, arrowY + arrowSize);
+      ctx.closePath();
+      ctx.fillStyle = closestSpecColor;
+      ctx.fill();
+      
+      // Draw arrowhead on right side
+      ctx.beginPath();
+      ctx.moveTo(arrowEndX, arrowY);
+      ctx.lineTo(arrowEndX - arrowSize, arrowY - arrowSize);
+      ctx.lineTo(arrowEndX - arrowSize, arrowY + arrowSize);
+      ctx.closePath();
+      ctx.fill();
+      
+      // Draw distance value above the arrow
+      const midX = (arrowStartX + arrowEndX) / 2;
+      ctx.fillStyle = closestSpecColor;
+      ctx.font = "11px 'Inter', sans-serif";
+      ctx.textAlign = "center";
+      ctx.fillText(closestSpecDistance.toFixed(2), midX, arrowY - 8);
+    }
   }
   
   // LSL line (red) - draw line first
@@ -536,7 +807,7 @@ function renderDistributionPlot(mean, sigma, lsl, usl, nominal) {
     ctx.lineTo(lslX, padding.top + lineHeight);
     ctx.stroke();
     
-    markers.push({ x: lslX, label: "LSL", value: lsl.toFixed(3), color: "#ff7b72", isSpecLimit: true });
+    markers.push({ x: lslX, label: "LSL", value: lsl.toFixed(2), color: "#ff7b72", isSpecLimit: true });
   }
   
   // USL line (red) - draw line first
@@ -550,26 +821,23 @@ function renderDistributionPlot(mean, sigma, lsl, usl, nominal) {
     ctx.lineTo(uslX, padding.top + lineHeight);
     ctx.stroke();
     
-    markers.push({ x: uslX, label: "USL", value: usl.toFixed(3), color: "#ff7b72", isSpecLimit: true });
+    markers.push({ x: uslX, label: "USL", value: usl.toFixed(2), color: "#ff7b72", isSpecLimit: true });
   }
   
   // Add Nominal to markers if it exists
   if (nominal !== null && nominal !== undefined && nominal >= xMin && nominal <= xMax) {
     const nominalX = scaleX(nominal);
-    // Draw a small triangle marker on x-axis
+    // Draw a vertical line for nominal (partial height, crosses x-axis)
     ctx.strokeStyle = "#f2cc60";
     ctx.lineWidth = 2;
     ctx.setLineDash([]);
     ctx.beginPath();
+    // Start from x-axis, go up a bit
     ctx.moveTo(nominalX, padding.top + plotHeight);
-    ctx.lineTo(nominalX - 6, padding.top + plotHeight + 10);
-    ctx.lineTo(nominalX + 6, padding.top + plotHeight + 10);
-    ctx.closePath();
-    ctx.fillStyle = "#f2cc60";
-    ctx.fill();
+    ctx.lineTo(nominalX, padding.top + plotHeight - 40);
     ctx.stroke();
     
-    markers.push({ x: nominalX, label: "Nominal", value: nominal.toFixed(3), color: "#f2cc60", isSpecLimit: false });
+    markers.push({ x: nominalX, label: "Nominal", value: nominal.toFixed(2), color: "#f2cc60", isSpecLimit: false });
   }
   
   // Sort markers by x position
@@ -605,6 +873,194 @@ function renderDistributionPlot(mean, sigma, lsl, usl, nominal) {
   ctx.textAlign = "center";
   ctx.fillText("Probability Density", 0, 0);
   ctx.restore();
+  
+  // Draw Cpk calculation above the graph (top right)
+  if (achievedCpk !== null && cpkNumerator !== null && cpkDenominator !== null && closestSpecLabel !== null) {
+    ctx.textAlign = "right";
+    ctx.textBaseline = "top";
+    
+    // Calculate original Cpk (without drift) for color determination
+    let originalCpk = null;
+    if (lsl !== null && lsl !== undefined && usl !== null && usl !== undefined && sigma > 0) {
+      const cpkUpper = (usl - mean) / (3 * sigma);
+      const cpkLower = (mean - lsl) / (3 * sigma);
+      originalCpk = Math.min(cpkUpper, cpkLower);
+    } else if (lsl !== null && lsl !== undefined && sigma > 0) {
+      originalCpk = (mean - lsl) / (3 * sigma);
+    } else if (usl !== null && usl !== undefined && sigma > 0) {
+      originalCpk = (usl - mean) / (3 * sigma);
+    }
+    
+    // Get acceptance criteria and determine if original Cpk meets it (for color)
+    const acceptanceCriteria = analysisSetup.criticalRequirement.acceptanceCriteria;
+    let requiredCpk = null;
+    let meetsCriteria = false;
+    
+    if (acceptanceCriteria && acceptanceCriteria.startsWith("cpk-") && originalCpk !== null) {
+      const cpkValue = parseFloat(acceptanceCriteria.replace("cpk-", ""));
+      requiredCpk = cpkValue;
+      meetsCriteria = originalCpk >= cpkValue;
+    }
+    
+    // Use the same values shown on the arrows
+    const cpkValueText = achievedCpk.toFixed(3);
+    // Only show parentheses when drift is NOT enabled
+    const criteriaText = (!applyDrift && requiredCpk !== null) 
+      ? (meetsCriteria ? ` (>${requiredCpk})` : ` (<${requiredCpk})`)
+      : "";
+    const cpkText = `Cpk = ${cpkNumerator.toFixed(2)} / ${cpkDenominator.toFixed(2)} = ${cpkValueText}${criteriaText}`;
+    const cpkLabel = applyDrift ? `(Distance to ${closestSpecLabel} / 3σ, with 1.5σ drift)` : `(Distance to ${closestSpecLabel} / 3σ)`;
+    
+    // Position above the plot area, further up than the mean value
+    const textX = padding.left + plotWidth - 15;
+    const textY = padding.top - 50; // Above the mean value which is at padding.top - 25
+    
+    // Draw main Cpk formula text with color based on original (non-shifted) Cpk
+    ctx.font = "bold 13px 'Inter', sans-serif";
+    ctx.fillStyle = meetsCriteria ? "#3fb950" : "#ff7b72"; // Green if passes, red if fails (based on original Cpk)
+    ctx.fillText(cpkText, textX, textY);
+    
+    // Draw explanation label below
+    ctx.font = "10px 'Inter', sans-serif";
+    ctx.fillStyle = "#8b949e";
+    ctx.fillText(cpkLabel, textX, textY + 18);
+  }
+  
+  // Calculate additional statistics
+  let cp = null;
+  let dpmo = null;
+  let percentOutOfSpec = null;
+  
+  if (lsl !== null && lsl !== undefined && usl !== null && usl !== undefined && sigma > 0) {
+    // Cp = (USL - LSL) / (6 * sigma)
+    cp = (usl - lsl) / (6 * sigma);
+    
+    // Calculate percentage out of spec using normal distribution
+    // P(X < LSL) + P(X > USL) = Φ((LSL - μ)/σ) + (1 - Φ((USL - μ)/σ))
+    // Using error function approximation: Φ(z) = 0.5 * (1 + erf(z/√2))
+    const erf = (x) => {
+      // Approximation of error function
+      const a1 =  0.254829592;
+      const a2 = -0.284496736;
+      const a3 =  1.421413741;
+      const a4 = -1.453152027;
+      const a5 =  1.061405429;
+      const p  =  0.3275911;
+      
+      const sign = x < 0 ? -1 : 1;
+      x = Math.abs(x);
+      
+      const t = 1.0 / (1.0 + p * x);
+      const y = 1.0 - (((((a5 * t + a4) * t) + a3) * t + a2) * t + a1) * t * Math.exp(-x * x);
+      
+      return sign * y;
+    };
+    
+    const phi = (z) => 0.5 * (1 + erf(z / Math.sqrt(2)));
+    
+    // Calculate percentage out of spec (without shift)
+    const zLSL = (lsl - mean) / sigma;
+    const zUSL = (usl - mean) / sigma;
+    
+    const probBelowLSL = phi(zLSL);
+    const probAboveUSL = 1 - phi(zUSL);
+    const probOutOfSpec = probBelowLSL + probAboveUSL;
+    percentOutOfSpec = probOutOfSpec * 100;
+    
+    // DPMO calculation with 1.5 sigma shift (long-term process variation)
+    // Shift mean by 1.5σ toward the worst-case spec limit
+    const shift = 1.5 * sigma;
+    let shiftedMean;
+    
+    // Determine which spec limit is closer (worst case)
+    const distanceToLSL = mean - lsl;
+    const distanceToUSL = usl - mean;
+    
+    if (distanceToLSL < distanceToUSL) {
+      // LSL is closer, shift mean toward LSL (decrease mean)
+      shiftedMean = mean - shift;
+    } else {
+      // USL is closer, shift mean toward USL (increase mean)
+      shiftedMean = mean + shift;
+    }
+    
+    // Calculate probability of defect with shifted mean
+    const zLSL_shifted = (lsl - shiftedMean) / sigma;
+    const zUSL_shifted = (usl - shiftedMean) / sigma;
+    
+    const probBelowLSL_shifted = phi(zLSL_shifted);
+    const probAboveUSL_shifted = 1 - phi(zUSL_shifted);
+    const probOutOfSpec_shifted = probBelowLSL_shifted + probAboveUSL_shifted;
+    
+    // DPMO = (Probability of defect with 1.5σ shift) * 1,000,000
+    dpmo = probOutOfSpec_shifted * 1000000;
+  }
+  
+  // Display statistics below the plot container (outside canvas)
+  if (statsContainer) {
+    statsContainer.innerHTML = "";
+    
+    // Calculate original Cpk (without drift) for color determination
+    let originalCpk = null;
+    if (lsl !== null && lsl !== undefined && usl !== null && usl !== undefined && sigma > 0) {
+      const cpkUpper = (usl - mean) / (3 * sigma);
+      const cpkLower = (mean - lsl) / (3 * sigma);
+      originalCpk = Math.min(cpkUpper, cpkLower);
+    } else if (lsl !== null && lsl !== undefined && sigma > 0) {
+      originalCpk = (mean - lsl) / (3 * sigma);
+    } else if (usl !== null && usl !== undefined && sigma > 0) {
+      originalCpk = (usl - mean) / (3 * sigma);
+    }
+    
+    // Get acceptance criteria and determine if original Cpk meets it (for color)
+    const acceptanceCriteria = analysisSetup.criticalRequirement.acceptanceCriteria;
+    let requiredCpk = null;
+    let meetsCriteria = false;
+    
+    if (acceptanceCriteria && acceptanceCriteria.startsWith("cpk-") && originalCpk !== null) {
+      const cpkValue = parseFloat(acceptanceCriteria.replace("cpk-", ""));
+      requiredCpk = cpkValue;
+      meetsCriteria = originalCpk >= cpkValue;
+    }
+    
+    const stats = [];
+    if (cp !== null) stats.push({ text: `Cp: ${cp.toFixed(3)}`, color: "var(--muted)", bold: false });
+    if (achievedCpk !== null) {
+      // Only show parentheses when drift is NOT enabled
+      const criteriaText = (!applyDrift && requiredCpk !== null) 
+        ? (meetsCriteria ? ` (>${requiredCpk})` : ` (<${requiredCpk})`)
+        : "";
+      stats.push({ 
+        text: `Cpk: ${achievedCpk.toFixed(3)}${criteriaText}`, 
+        color: meetsCriteria ? "var(--success)" : "var(--danger)", 
+        bold: true 
+      });
+    }
+    if (dpmo !== null) stats.push({ text: `DPMO: ${dpmo.toFixed(0)}`, color: "var(--muted)", bold: false });
+    if (sigma > 0) stats.push({ text: `Standard Deviation: ${sigma.toFixed(3)}`, color: "var(--muted)", bold: false });
+    if (lsl !== null && lsl !== undefined) stats.push({ text: `LSL: ${lsl.toFixed(2)}`, color: "var(--muted)", bold: false });
+    if (usl !== null && usl !== undefined) stats.push({ text: `USL: ${usl.toFixed(2)}`, color: "var(--muted)", bold: false });
+    if (nominal !== null && nominal !== undefined) stats.push({ text: `Nominal: ${nominal.toFixed(2)}`, color: "var(--muted)", bold: false });
+    if (displayMean !== null && displayMean !== undefined) {
+      const meanText = applyDrift 
+        ? `Mean (with 1.5σ drift): ${displayMean.toFixed(2)}`
+        : `Mean: ${displayMean.toFixed(2)}`;
+      stats.push({ text: meanText, color: "var(--muted)", bold: false });
+    }
+    
+    // Create a div for each statistic on its own row
+    stats.forEach((stat) => {
+      const statDiv = document.createElement("div");
+      statDiv.textContent = stat.text;
+      statDiv.style.color = stat.color;
+      statDiv.style.fontSize = "0.875rem";
+      statDiv.style.marginBottom = "0.25rem";
+      if (stat.bold) {
+        statDiv.style.fontWeight = "bold";
+      }
+      statsContainer.appendChild(statDiv);
+    });
+  }
 }
 
 function alignBoxWidths() {
@@ -814,7 +1270,7 @@ function renderPareto(totalVariance) {
 
   const contributions = stackData.map((row, originalIndex) => {
     const { tolAdj } = parseAsymmetry(row.tol, row.nominal);
-    const cpk = row.cpk || 1.33;
+    const cpk = row.cpk || 1;
     const rowSigma = tolAdj / (3 * cpk || 1);
     const variance = rowSigma ** 2;
     return {
