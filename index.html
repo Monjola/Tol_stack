@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>StackMaster | Tolerance Analysis</title>
     <link rel="stylesheet" href="styles.css" />
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
   </head>
   <body>
     <header>
@@ -200,6 +201,22 @@
         </div>
         <div id="pareto-chart"></div>
         <div class="pareto-legend"></div>
+      </section>
+
+      <section id="conclusion">
+        <h2>Conclusion and Suggested Actions</h2>
+        <textarea 
+          id="conclusion-text" 
+          placeholder="Enter your conclusions and suggested actions here..."
+          rows="6"
+        ></textarea>
+      </section>
+
+      <section id="report-section">
+        <div id="report-options" style="flex: 1;">
+          <!-- Checkboxes for report options will go here later -->
+        </div>
+        <button id="generate-report-btn" class="primary">Generate Report</button>
       </section>
     </main>
 

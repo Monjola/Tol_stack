@@ -463,6 +463,77 @@ button:hover {
   border-radius: 0.5rem;
 }
 
+#conclusion {
+  padding: 1.5rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.75rem;
+  margin-top: 1rem;
+}
+
+#conclusion h2 {
+  margin-top: 0;
+  margin-bottom: 1rem;
+  font-size: 1.25rem;
+}
+
+#conclusion-text {
+  width: 100%;
+  padding: 0.75rem;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 0.5rem;
+  color: var(--text);
+  font-family: var(--font);
+  font-size: 0.875rem;
+  resize: vertical;
+  min-height: 120px;
+  box-sizing: border-box;
+}
+
+#conclusion-text:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+#report-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 1rem;
+  padding: 0 1.5rem;
+}
+
+#report-options {
+  flex: 1;
+  /* Space for future checkboxes */
+}
+
+#generate-report-btn {
+  margin-left: auto;
+}
+
+#generate-report-btn {
+  padding: 0.75rem 1.5rem;
+  background: var(--accent);
+  color: white;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+  font-family: var(--font);
+}
+
+#generate-report-btn:hover {
+  background: #4a9eff;
+}
+
+#generate-report-btn:active {
+  background: #3d8eef;
+}
+
 #distribution-plot {
   width: 100%;
   height: auto;

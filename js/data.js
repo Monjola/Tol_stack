@@ -32,21 +32,21 @@ export const settings = {
 // Analysis setup data
 export const analysisSetup = {
   metadata: {
-    title: "",
-    project: "",
-    partNr: "",
-    analyst: "",
+    title: "Test Analysis Report",
+    project: "Test project",
+    partNr: "ASM-001",
+    analyst: "Måns Nilsson",
     creationDate: new Date().toISOString().split('T')[0], // Current date in YYYY-MM-DD format
   },
   criticalRequirement: {
-    criticalFeature: "",
+    criticalFeature: "Gap between X and Y",
     nominalTarget: 163,
     lsl: 162,
     usl: 164,
     acceptanceCriteria: "worst-case",
   },
   assumptionsContext: {
-    functionalDescription: "",
+    functionalDescription: "This gap is critical to the assembly, too much gap will cause excessive clearance and lead to loss of function, a total lack of gap will lead to assembly not being possible",
   },
 };
 
