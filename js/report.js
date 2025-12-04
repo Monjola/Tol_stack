@@ -1,4 +1,4 @@
-import { analysisSetup } from './data.js';
+import { analysisSetup, stackData, settings } from './data.js';
 
 // Report generation functionality
 export function setupReport() {
@@ -288,18 +288,12 @@ async function createReportPDF() {
     console.error('ERROR: Second page was not created!');
   }
   
-  // Add page title - this should always be visible
-  doc.setFontSize(18);
+  // Add small page title
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(...ocadoNavy);
-  const pageTitle = 'Drawing with Annotations';
-  const pageTitleWidth = doc.getTextWidth(pageTitle);
-  doc.text(pageTitle, (pageWidth - pageTitleWidth) / 2, margin + 15);
-  
-  // Add a divider line below title
-  doc.setDrawColor(...ocadoBlue);
-  doc.setLineWidth(1);
-  doc.line(margin, margin + 25, pageWidth - margin, margin + 25);
+  const pageTitle = 'Stack Sketch';
+  doc.text(pageTitle, margin, margin + 8);
   
   // Add page number at bottom (for debugging)
   doc.setFontSize(10);
@@ -314,9 +308,9 @@ async function createReportPDF() {
     console.log('Canvas image result:', canvasImage ? 'Found' : 'Not found');
     
     if (canvasImage && canvasImage.data) {
-      // Calculate image dimensions to fit on page
+      // Calculate image dimensions to fit in upper half of page (reserve lower half for table)
       const maxImageWidth = contentWidth;
-      const maxImageHeight = pageHeight - (margin * 2) - 20; // Leave space for title
+      const maxImageHeight = (pageHeight - (margin * 2)) / 2 - 20; // Upper half minus spacing
       
       // Calculate scaling to fit image while maintaining aspect ratio
       const imgAspect = canvasImage.width / canvasImage.height;
@@ -335,19 +329,23 @@ async function createReportPDF() {
       
       // Center the image horizontally
       const imgX = (pageWidth - imgWidth) / 2;
-      const imgY = margin + 35; // Start below title
+      const imgY = margin + 12; // Start just below small title
       
       // Add image to PDF
       doc.addImage(canvasImage.data, 'PNG', imgX, imgY, imgWidth, imgHeight);
     } else {
       // No image available - show placeholder text
-      doc.setFontSize(14);
+      doc.setFontSize(11);
       doc.setFont('helvetica', 'normal');
       doc.setTextColor(...ocadoDarkGrey);
       const placeholderText = 'No drawing image available';
       const textWidth = doc.getTextWidth(placeholderText);
-      doc.text(placeholderText, (pageWidth - textWidth) / 2, margin + 50);
+      doc.text(placeholderText, (pageWidth - textWidth) / 2, margin + 40);
     }
+    
+    // Add Stack Data table in the second half of the page with spacing from image
+    const tableStartY = (pageHeight / 2) + 10; // Start in lower half with spacing
+    addStackDataTable(doc, stackData, margin, contentWidth, tableStartY, pageHeight, ocadoBlue, ocadoDarkBlue, ocadoNavy, ocadoDarkGrey, ocadoLightGrey);
   } catch (error) {
     console.error('Error adding canvas image to PDF:', error);
     // Still show placeholder if there's an error
@@ -470,6 +468,144 @@ async function getCanvasImage() {
     
     bgImg.src = imgElement.src;
   });
+}
+
+// Add Stack Data table to PDF
+function addStackDataTable(doc, stackData, margin, contentWidth, startY, pageHeight, ocadoBlue, ocadoDarkBlue, ocadoNavy, ocadoDarkGrey, ocadoLightGrey) {
+  // Compact sizing to fit in half page
+  const rowHeight = 6;
+  const headerHeight = 8;
+  const fontSize = 6;
+  
+  // Start directly at the provided Y position (no title)
+  let currentY = startY;
+  
+  // Determine which columns to show based on settings
+  const showToleranceType = settings.showToleranceType;
+  const showCpk = settings.advancedStatisticalMode;
+  const showFloatShifted = settings.showFloatShifted;
+  
+  // Build columns array based on settings (no Notes or Source columns)
+  const columns = [
+    { key: 'itemNr', header: '#', width: 10 },
+    { key: 'partNr', header: 'Part Nr', width: 25 },
+    { key: 'description', header: 'Description', width: 50 },
+    { key: 'nominal', header: 'Nominal', width: 22 },
+    { key: 'direction', header: 'Dir', width: 12 }
+  ];
+  
+  if (showToleranceType) {
+    columns.push({ key: 'tolType', header: 'Type', width: 18 });
+  }
+  
+  columns.push({ key: 'tol', header: 'Tol (±)', width: 22 });
+  
+  if (showCpk) {
+    columns.push({ key: 'cpk', header: 'Cpk', width: 15 });
+  }
+  
+  if (showFloatShifted) {
+    columns.push({ key: 'floatShifted', header: 'Float', width: 15 });
+  }
+  
+  // Calculate total width and adjust description column to fill remaining space
+  const totalFixedWidth = columns.reduce((sum, col) => sum + col.width, 0);
+  const descCol = columns.find(c => c.key === 'description');
+  if (descCol && totalFixedWidth < contentWidth) {
+    descCol.width += contentWidth - totalFixedWidth;
+  }
+  
+  // Helper function to draw header
+  const drawHeader = (y) => {
+    doc.setFillColor(...ocadoBlue);
+    doc.rect(margin, y, contentWidth, headerHeight, 'F');
+    
+    doc.setFontSize(fontSize);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(255, 255, 255);
+    
+    let xPos = margin + 2;
+    columns.forEach(col => {
+      doc.text(col.header, xPos, y + 6);
+      xPos += col.width;
+    });
+  };
+  
+  // Draw initial header
+  drawHeader(currentY);
+  currentY += headerHeight;
+  
+  // Table rows
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(fontSize);
+  
+  stackData.forEach((row, index) => {
+    // Check if we need a new page
+    if (currentY + rowHeight > pageHeight - margin - 10) {
+      doc.addPage();
+      currentY = margin + 10;
+      drawHeader(currentY);
+      currentY += headerHeight;
+    }
+    
+    // Alternate row background
+    if (index % 2 === 0) {
+      doc.setFillColor(...ocadoLightGrey);
+      doc.rect(margin, currentY, contentWidth, rowHeight, 'F');
+    }
+    
+    // Row border
+    doc.setDrawColor(...ocadoBlue);
+    doc.setLineWidth(0.2);
+    doc.line(margin, currentY, margin + contentWidth, currentY);
+    
+    // Row data
+    doc.setTextColor(...ocadoDarkGrey);
+    let xPos = margin + 2;
+    
+    columns.forEach(col => {
+      let value = '';
+      switch (col.key) {
+        case 'itemNr':
+          value = String(index + 1);
+          break;
+        case 'partNr':
+          value = (row.partNr || '—').substring(0, 12);
+          break;
+        case 'description':
+          const desc = row.description || '—';
+          value = doc.splitTextToSize(desc, col.width - 2)[0];
+          break;
+        case 'nominal':
+          value = row.nominal != null ? row.nominal.toFixed(3) : '—';
+          break;
+        case 'direction':
+          value = row.direction || '+';
+          break;
+        case 'tolType':
+          value = (row.tolType || 'Linear').substring(0, 6);
+          break;
+        case 'tol':
+          value = row.tol != null ? row.tol.toFixed(3) : '—';
+          break;
+        case 'cpk':
+          value = row.cpk != null ? row.cpk.toFixed(2) : '—';
+          break;
+        case 'floatShifted':
+          value = row.floatShifted ? 'Yes' : 'No';
+          break;
+      }
+      doc.text(value, xPos, currentY + 4.5);
+      xPos += col.width;
+    });
+    
+    currentY += rowHeight;
+  });
+  
+  // Bottom border
+  doc.setDrawColor(...ocadoBlue);
+  doc.setLineWidth(0.2);
+  doc.line(margin, currentY, margin + contentWidth, currentY);
 }
 
 // Download PDF as fallback
