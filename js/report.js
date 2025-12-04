@@ -277,9 +277,199 @@ async function createReportPDF() {
   doc.setTextColor(...ocadoDarkGrey);
   doc.text(descriptionLines, margin + tableCol1Width + 8, currentY + 7);
   
+  // Second page - Canvas Image
+  console.log('Adding second page to PDF...');
+  doc.addPage();
+  const pageCount = doc.internal.getNumberOfPages();
+  console.log('Second page added. Total pages:', pageCount);
+  
+  // Verify we're on the second page by checking page number
+  if (pageCount < 2) {
+    console.error('ERROR: Second page was not created!');
+  }
+  
+  // Add page title - this should always be visible
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ocadoNavy);
+  const pageTitle = 'Drawing with Annotations';
+  const pageTitleWidth = doc.getTextWidth(pageTitle);
+  doc.text(pageTitle, (pageWidth - pageTitleWidth) / 2, margin + 15);
+  
+  // Add a divider line below title
+  doc.setDrawColor(...ocadoBlue);
+  doc.setLineWidth(1);
+  doc.line(margin, margin + 25, pageWidth - margin, margin + 25);
+  
+  // Add page number at bottom (for debugging)
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(...ocadoDarkGrey);
+  doc.text(`Page 2 of ${pageCount}`, pageWidth - margin - 30, pageHeight - 15);
+  
+  try {
+    console.log('Attempting to get canvas image...');
+    // Get canvas image (background + annotations)
+    const canvasImage = await getCanvasImage();
+    console.log('Canvas image result:', canvasImage ? 'Found' : 'Not found');
+    
+    if (canvasImage && canvasImage.data) {
+      // Calculate image dimensions to fit on page
+      const maxImageWidth = contentWidth;
+      const maxImageHeight = pageHeight - (margin * 2) - 20; // Leave space for title
+      
+      // Calculate scaling to fit image while maintaining aspect ratio
+      const imgAspect = canvasImage.width / canvasImage.height;
+      const maxAspect = maxImageWidth / maxImageHeight;
+      
+      let imgWidth, imgHeight;
+      if (imgAspect > maxAspect) {
+        // Image is wider - fit to width
+        imgWidth = maxImageWidth;
+        imgHeight = maxImageWidth / imgAspect;
+      } else {
+        // Image is taller - fit to height
+        imgHeight = maxImageHeight;
+        imgWidth = maxImageHeight * imgAspect;
+      }
+      
+      // Center the image horizontally
+      const imgX = (pageWidth - imgWidth) / 2;
+      const imgY = margin + 35; // Start below title
+      
+      // Add image to PDF
+      doc.addImage(canvasImage.data, 'PNG', imgX, imgY, imgWidth, imgHeight);
+    } else {
+      // No image available - show placeholder text
+      doc.setFontSize(14);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...ocadoDarkGrey);
+      const placeholderText = 'No drawing image available';
+      const textWidth = doc.getTextWidth(placeholderText);
+      doc.text(placeholderText, (pageWidth - textWidth) / 2, margin + 50);
+    }
+  } catch (error) {
+    console.error('Error adding canvas image to PDF:', error);
+    // Still show placeholder if there's an error
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...ocadoDarkGrey);
+    const errorText = 'Error loading drawing image';
+    const textWidth = doc.getTextWidth(errorText);
+    doc.text(errorText, (pageWidth - textWidth) / 2, margin + 50);
+  }
+  
+  // Log final page count
+  const totalPages = doc.internal.getNumberOfPages();
+  console.log('PDF generation complete. Total pages:', totalPages);
+  
   // Convert to blob
   const pdfBlob = doc.output('blob');
   return pdfBlob;
+}
+
+// Get canvas image (background + annotations) as data URL
+async function getCanvasImage() {
+  const imgElement = document.getElementById("drawing-img");
+  const canvasElement = document.getElementById("drawing-canvas");
+  const canvasWrapper = document.getElementById("canvas-wrapper");
+  
+  // Check if canvas wrapper is visible (image exists)
+  if (!canvasWrapper || !imgElement) {
+    return null;
+  }
+  
+  // Check if wrapper is hidden (could be "none" string or false)
+  const isHidden = canvasWrapper.style.display === "none" || 
+                   window.getComputedStyle(canvasWrapper).display === "none";
+  
+  if (isHidden || !imgElement.src || imgElement.src === "") {
+    return null;
+  }
+  
+  // Create a temporary canvas to combine background image and annotations
+  return new Promise((resolve, reject) => {
+    const tempCanvas = document.createElement("canvas");
+    const tempCtx = tempCanvas.getContext("2d");
+    
+    // Load the background image
+    const bgImg = new Image();
+    bgImg.crossOrigin = "anonymous";
+    
+    bgImg.onload = () => {
+      try {
+        // Set temp canvas size to match background image natural size
+        tempCanvas.width = bgImg.naturalWidth;
+        tempCanvas.height = bgImg.naturalHeight;
+        
+        // Draw background image at full natural size
+        tempCtx.drawImage(bgImg, 0, 0);
+        
+        // Draw annotations from the annotation canvas if it exists and has content
+        if (canvasElement && canvasElement.width > 0 && canvasElement.height > 0) {
+          // Simple approach: scale canvas to match image natural size
+          // Both canvas and image fill the same wrapper, so we can scale proportionally
+          const canvasWidth = canvasElement.width;
+          const canvasHeight = canvasElement.height;
+          
+          // Calculate scale to fit canvas to image natural size while maintaining aspect ratio
+          const canvasAspect = canvasWidth / canvasHeight;
+          const imgAspect = bgImg.naturalWidth / bgImg.naturalHeight;
+          
+          let scale, drawWidth, drawHeight, offsetX, offsetY;
+          
+          if (canvasAspect > imgAspect) {
+            // Canvas is wider - fit to image height
+            scale = bgImg.naturalHeight / canvasHeight;
+            drawHeight = bgImg.naturalHeight;
+            drawWidth = canvasWidth * scale;
+            offsetX = (bgImg.naturalWidth - drawWidth) / 2;
+            offsetY = 0;
+          } else {
+            // Canvas is taller - fit to image width
+            scale = bgImg.naturalWidth / canvasWidth;
+            drawWidth = bgImg.naturalWidth;
+            drawHeight = canvasHeight * scale;
+            offsetX = 0;
+            offsetY = (bgImg.naturalHeight - drawHeight) / 2;
+          }
+          
+          console.log('Annotation scaling:', {
+            canvasSize: `${canvasWidth}x${canvasHeight}`,
+            imgNaturalSize: `${bgImg.naturalWidth}x${bgImg.naturalHeight}`,
+            scale,
+            drawSize: `${drawWidth}x${drawHeight}`,
+            offset: `${offsetX}, ${offsetY}`
+          });
+          
+          // Draw canvas scaled to match image
+          tempCtx.save();
+          tempCtx.translate(offsetX, offsetY);
+          tempCtx.scale(scale, scale);
+          tempCtx.drawImage(canvasElement, 0, 0);
+          tempCtx.restore();
+        }
+        
+        // Convert to data URL
+        const dataURL = tempCanvas.toDataURL("image/png");
+        resolve({
+          data: dataURL,
+          width: tempCanvas.width,
+          height: tempCanvas.height
+        });
+      } catch (error) {
+        console.error('Error processing canvas image:', error);
+        reject(error);
+      }
+    };
+    
+    bgImg.onerror = (error) => {
+      console.error('Error loading background image:', error);
+      resolve(null);
+    };
+    
+    bgImg.src = imgElement.src;
+  });
 }
 
 // Download PDF as fallback
