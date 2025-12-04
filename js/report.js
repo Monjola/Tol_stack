@@ -357,6 +357,21 @@ async function createReportPDF() {
     doc.text(errorText, (pageWidth - textWidth) / 2, margin + 50);
   }
   
+  // Third page - Dashboard / Results
+  doc.addPage();
+  
+  // Add small page title
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ocadoNavy);
+  doc.text('Analysis Results', margin, margin + 8);
+  
+  // Get dashboard values from DOM (they're already calculated)
+  const dashboardData = getDashboardData();
+  
+  // Render dashboard on third page
+  addDashboardPage(doc, dashboardData, margin, contentWidth, pageWidth, pageHeight, ocadoBlue, ocadoDarkBlue, ocadoNavy, ocadoDarkGrey, ocadoLightGrey);
+  
   // Log final page count
   const totalPages = doc.internal.getNumberOfPages();
   console.log('PDF generation complete. Total pages:', totalPages);
@@ -364,6 +379,457 @@ async function createReportPDF() {
   // Convert to blob
   const pdfBlob = doc.output('blob');
   return pdfBlob;
+}
+
+// Get dashboard data from DOM elements
+function getDashboardData() {
+  // Get values from DOM elements that are already populated
+  const getElementText = (id) => {
+    const el = document.getElementById(id);
+    return el ? el.textContent : '—';
+  };
+  
+  const isElementVisible = (id) => {
+    const el = document.getElementById(id);
+    if (!el) return false;
+    // Check both inline style and computed style
+    if (el.style.display === 'none') return false;
+    const style = window.getComputedStyle(el);
+    return style.display !== 'none' && style.visibility !== 'hidden';
+  };
+  
+  // Get sigma from data attribute
+  const statMeanEl = document.getElementById('stat-mean');
+  const sigma = statMeanEl ? parseFloat(statMeanEl.getAttribute('data-sigma')) || 0 : 0;
+  
+  // Get distribution plot stats (advanced mode)
+  const distributionStats = getDistributionPlotStats();
+  
+  return {
+    // Specification limits
+    nominalTarget: getElementText('stat-nominal-target'),
+    nominalTargetVisible: isElementVisible('stat-nominal-target-card'),
+    lsl: getElementText('stat-lsl'),
+    lslVisible: isElementVisible('stat-lsl-card'),
+    usl: getElementText('stat-usl'),
+    uslVisible: isElementVisible('stat-usl-card'),
+    specTolerance: getElementText('stat-spec-tolerance'),
+    specToleranceVisible: isElementVisible('stat-spec-tolerance-card'),
+    
+    // Stack results
+    stackMean: getElementText('stat-mean'),
+    sigma: sigma,
+    
+    // Advanced mode stats
+    meanMinus3Sigma: getElementText('stat-mean-minus-3sigma'),
+    meanMinus3SigmaVisible: isElementVisible('stat-mean-minus-3sigma-card'),
+    meanPlus3Sigma: getElementText('stat-mean-plus-3sigma'),
+    meanPlus3SigmaVisible: isElementVisible('stat-mean-plus-3sigma-card'),
+    processRange: getElementText('stat-3sigma'),
+    processRangeVisible: isElementVisible('stat-3sigma-card'),
+    
+    // Basic mode - Worst case
+    meanMinusWorstCase: getElementText('stat-mean-minus-worst-case'),
+    meanMinusWorstCaseVisible: isElementVisible('stat-mean-minus-worst-case-card'),
+    meanPlusWorstCase: getElementText('stat-mean-plus-worst-case'),
+    meanPlusWorstCaseVisible: isElementVisible('stat-mean-plus-worst-case-card'),
+    worstCaseTol: getElementText('stat-worst-case-tol'),
+    worstCaseTolVisible: isElementVisible('stat-worst-case-tol-card'),
+    
+    // Basic mode - RSS
+    meanMinusRss: getElementText('stat-mean-minus-rss'),
+    meanMinusRssVisible: isElementVisible('stat-mean-minus-rss-card'),
+    meanPlusRss: getElementText('stat-mean-plus-rss'),
+    meanPlusRssVisible: isElementVisible('stat-mean-plus-rss-card'),
+    rssTol: getElementText('stat-rss-tol'),
+    rssTolVisible: isElementVisible('stat-rss-tol-card'),
+    
+    // Legacy boxes
+    worstCase: getElementText('stat-worst-case'),
+    worstCaseVisible: isElementVisible('stat-worst-case-card'),
+    rss: getElementText('stat-rss'),
+    rssVisible: isElementVisible('stat-rss-card'),
+    
+    // Acceptance criteria
+    acceptanceCriteria: getElementText('stat-acceptance-criteria'),
+    acceptanceCriteriaVisible: isElementVisible('stat-acceptance-criteria-card'),
+    achievedCpk: getElementText('stat-achieved-cpk'),
+    achievedCpkVisible: isElementVisible('stat-achieved-cpk-card'),
+    acceptance: getElementText('stat-acceptance'),
+    acceptanceVisible: isElementVisible('stat-acceptance-card'),
+    
+    // Distribution plot stats (advanced mode)
+    distributionStats: distributionStats,
+    distributionStatsVisible: isElementVisible('distribution-plot-stats'),
+    
+    // Distribution plot image (advanced mode)
+    distributionPlotImage: getDistributionPlotImage(),
+    distributionPlotVisible: isElementVisible('distribution-plot-container'),
+    
+    // Get Pareto data
+    paretoData: getParetoData()
+  };
+}
+
+// Get distribution plot as image data URL
+function getDistributionPlotImage() {
+  const canvas = document.getElementById('distribution-plot');
+  if (!canvas) return null;
+  
+  const container = document.getElementById('distribution-plot-container');
+  if (!container || window.getComputedStyle(container).display === 'none') return null;
+  
+  try {
+    return {
+      data: canvas.toDataURL('image/png'),
+      width: canvas.width,
+      height: canvas.height
+    };
+  } catch (e) {
+    console.error('Error capturing distribution plot:', e);
+    return null;
+  }
+}
+
+// Get distribution plot statistics
+function getDistributionPlotStats() {
+  const container = document.getElementById('distribution-plot-stats');
+  if (!container) return [];
+  
+  const stats = [];
+  const statDivs = container.querySelectorAll('div');
+  statDivs.forEach(div => {
+    stats.push({
+      text: div.textContent,
+      bold: div.style.fontWeight === 'bold'
+    });
+  });
+  return stats;
+}
+
+// Get Pareto chart data
+function getParetoData() {
+  const labels = document.querySelectorAll('.bar-label');
+  const data = [];
+  labels.forEach(label => {
+    // Extract description from the fullText (format is "Description · X.X%")
+    const fullText = label.dataset.fullText || label.textContent || '';
+    const description = fullText.split(' · ')[0] || fullText;
+    
+    data.push({
+      description: description,
+      fullText: fullText,
+      itemNumber: label.dataset.itemNumber || '?',
+      percent: parseFloat(label.dataset.percent) || 0
+    });
+  });
+  return data;
+}
+
+// Add dashboard page to PDF
+function addDashboardPage(doc, data, margin, contentWidth, pageWidth, pageHeight, ocadoBlue, ocadoDarkBlue, ocadoNavy, ocadoDarkGrey, ocadoLightGrey) {
+  let yPos = margin + 15;
+  const cardWidth = (contentWidth - 9) / 4; // 4 cards per row with gaps
+  const cardHeight = 22;
+  const cardGap = 3;
+  
+  // Helper to draw a stat card with dynamic width
+  const drawStatCard = (label, value, x, y, highlight = false, wide = false) => {
+    const cWidth = wide ? cardWidth * 2 + cardGap : cardWidth;
+    
+    // Card background
+    doc.setFillColor(...ocadoLightGrey);
+    doc.roundedRect(x, y, cWidth, cardHeight, 2, 2, 'F');
+    
+    // Card border
+    doc.setDrawColor(...ocadoBlue);
+    doc.setLineWidth(0.5);
+    doc.roundedRect(x, y, cWidth, cardHeight, 2, 2, 'S');
+    
+    // Label
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...ocadoDarkGrey);
+    const labelText = doc.splitTextToSize(label, cWidth - 6)[0];
+    doc.text(labelText, x + 3, y + 6);
+    
+    // Value - truncate if needed
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    if (highlight) {
+      if (value === 'PASS') {
+        doc.setTextColor(34, 139, 34); // Green
+      } else if (value === 'FAIL') {
+        doc.setTextColor(220, 20, 60); // Red
+      } else {
+        doc.setTextColor(...ocadoNavy);
+      }
+    } else {
+      doc.setTextColor(...ocadoNavy);
+    }
+    const valueText = doc.splitTextToSize(String(value), cWidth - 6)[0];
+    doc.text(valueText, x + 3, y + 16);
+    
+    return wide ? 2 : 1; // Return how many columns this card takes
+  };
+  
+  // Check if we're in advanced mode (distribution plot visible)
+  const isAdvancedMode = data.distributionPlotVisible && data.distributionPlotImage && data.distributionPlotImage.data;
+  
+  let col = 0;
+  
+  if (isAdvancedMode) {
+    // ADVANCED MODE: Show distribution plot at top, then stats, then pareto
+    
+    // Distribution Plot
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...ocadoDarkBlue);
+    doc.text('Normal Distribution', margin, yPos);
+    yPos += 5;
+    
+    // Calculate image dimensions to fit - make it larger since no cards above
+    const maxPlotWidth = contentWidth;
+    const maxPlotHeight = 90;
+    
+    const plotAspect = data.distributionPlotImage.width / data.distributionPlotImage.height;
+    let plotWidth, plotHeight;
+    
+    if (plotAspect > maxPlotWidth / maxPlotHeight) {
+      plotWidth = maxPlotWidth;
+      plotHeight = maxPlotWidth / plotAspect;
+    } else {
+      plotHeight = maxPlotHeight;
+      plotWidth = maxPlotHeight * plotAspect;
+    }
+    
+    // Center the plot
+    const plotX = margin + (contentWidth - plotWidth) / 2;
+    
+    try {
+      doc.addImage(data.distributionPlotImage.data, 'PNG', plotX, yPos, plotWidth, plotHeight);
+      yPos += plotHeight + 5;
+    } catch (e) {
+      console.error('Error adding distribution plot to PDF:', e);
+    }
+    
+    // Distribution Statistics - compact row below graph
+    if (data.distributionStatsVisible && data.distributionStats && data.distributionStats.length > 0) {
+      doc.setFontSize(6);
+      let statsX = margin;
+      const statsPerRow = 4;
+      let statsCol = 0;
+      const statWidth = (contentWidth) / statsPerRow;
+      
+      data.distributionStats.forEach((stat, index) => {
+        if (stat.bold) {
+          doc.setFont('helvetica', 'bold');
+        } else {
+          doc.setFont('helvetica', 'normal');
+        }
+        doc.setTextColor(...ocadoDarkGrey);
+        
+        const truncatedText = stat.text.length > 28 ? stat.text.substring(0, 28) + '...' : stat.text;
+        doc.text(truncatedText, statsX, yPos + 4);
+        
+        statsCol++;
+        if (statsCol >= statsPerRow) {
+          statsCol = 0;
+          statsX = margin;
+          yPos += 6;
+        } else {
+          statsX += statWidth;
+        }
+      });
+      
+      if (statsCol > 0) yPos += 6;
+      yPos += 5;
+    }
+    
+  } else {
+    // BASIC MODE: Show cards layout
+    
+    // Section 1: Specification Limits
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...ocadoDarkBlue);
+    doc.text('Specification Limits', margin, yPos);
+    yPos += 5;
+    
+    const hasNominal = data.nominalTargetVisible || (data.nominalTarget && data.nominalTarget !== '—');
+    const hasLsl = data.lslVisible || (data.lsl && data.lsl !== '—');
+    const hasUsl = data.uslVisible || (data.usl && data.usl !== '—');
+    const hasSpecTol = data.specToleranceVisible || (data.specTolerance && data.specTolerance !== '—');
+    
+    if (hasNominal) {
+      drawStatCard('Nominal Target', data.nominalTarget, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    if (hasLsl) {
+      drawStatCard('LSL', data.lsl, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    if (hasUsl) {
+      drawStatCard('USL', data.usl, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    if (hasSpecTol) {
+      drawStatCard('Spec Tolerance', data.specTolerance, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    
+    if (col > 0) yPos += cardHeight + 10;
+    
+    // Section 2: Analysis Results
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...ocadoDarkBlue);
+    doc.text('Analysis Results', margin, yPos);
+    yPos += 5;
+    
+    col = 0;
+    drawStatCard('Stack Mean', data.stackMean, margin + col * (cardWidth + cardGap), yPos);
+    col++;
+    
+    // Basic mode - Worst case
+    if (data.meanMinusWorstCaseVisible) {
+      drawStatCard('Mean - Worst Case', data.meanMinusWorstCase, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    if (data.meanPlusWorstCaseVisible) {
+      drawStatCard('Mean + Worst Case', data.meanPlusWorstCase, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    if (data.worstCaseTolVisible) {
+      drawStatCard('Worst Case Tol', data.worstCaseTol, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    
+    // Basic mode - RSS
+    if (data.meanMinusRssVisible) {
+      drawStatCard('Mean - RSS', data.meanMinusRss, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    if (data.meanPlusRssVisible) {
+      drawStatCard('Mean + RSS', data.meanPlusRss, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    if (data.rssTolVisible) {
+      drawStatCard('RSS Tol', data.rssTol, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    
+    // Legacy boxes
+    if (data.worstCaseVisible) {
+      drawStatCard('Worst Case', data.worstCase, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    if (data.rssVisible) {
+      drawStatCard('RSS', data.rss, margin + col * (cardWidth + cardGap), yPos);
+      col++;
+    }
+    
+    yPos += cardHeight + 10;
+    
+    // Section 3: Acceptance Criteria
+    if (data.acceptanceCriteriaVisible || data.acceptanceVisible) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...ocadoDarkBlue);
+      doc.text('Acceptance', margin, yPos);
+      yPos += 5;
+      
+      col = 0;
+      if (data.acceptanceCriteriaVisible) {
+        col += drawStatCard('Acceptance Criteria', data.acceptanceCriteria, margin + col * (cardWidth + cardGap), yPos, false, true);
+      }
+      if (data.achievedCpkVisible) {
+        drawStatCard('Achieved Cpk', data.achievedCpk, margin + col * (cardWidth + cardGap), yPos);
+        col++;
+      }
+      if (data.acceptanceVisible) {
+        drawStatCard('Result', data.acceptance, margin + col * (cardWidth + cardGap), yPos, true);
+        col++;
+      }
+      
+      yPos += cardHeight + 10;
+    }
+  }
+  
+  // Section 4: Pareto Chart (Vertical Bars)
+  if (data.paretoData && data.paretoData.length > 0) {
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...ocadoDarkBlue);
+    doc.text('Pareto Contributions', margin, yPos);
+    yPos += 8;
+    
+    // Calculate dimensions for vertical bar chart
+    const numBars = data.paretoData.length;
+    const chartWidth = contentWidth;
+    const maxBarHeight = 50; // Maximum bar height
+    const barWidth = Math.min(15, (chartWidth - 20) / numBars - 2); // Bar width, max 15
+    const barGap = Math.max(2, ((chartWidth - 20) - (barWidth * numBars)) / (numBars + 1));
+    const chartStartX = margin + barGap;
+    const chartBaseY = yPos + maxBarHeight; // Y position of bar bottoms
+    
+    let cumulative = 0;
+    
+    // Draw bars
+    data.paretoData.forEach((item, index) => {
+      cumulative += item.percent;
+      const isVitalFew = cumulative <= 80;
+      
+      const barX = chartStartX + index * (barWidth + barGap);
+      const barHeight = (item.percent / 100) * maxBarHeight;
+      const barY = chartBaseY - barHeight;
+      
+      // Bar fill
+      if (isVitalFew) {
+        doc.setFillColor(220, 53, 69); // Red for vital few
+      } else {
+        doc.setFillColor(88, 166, 255); // Blue for trivial many
+      }
+      doc.rect(barX, barY, barWidth, barHeight, 'F');
+      
+      // Percentage on top of bar
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...ocadoDarkGrey);
+      const percentText = `${item.percent.toFixed(0)}%`;
+      const percentWidth = doc.getTextWidth(percentText);
+      doc.text(percentText, barX + (barWidth - percentWidth) / 2, barY - 2);
+      
+      // Item number below bar
+      doc.setFontSize(5);
+      doc.setFont('helvetica', 'bold');
+      const numText = item.itemNumber;
+      const numWidth = doc.getTextWidth(numText);
+      doc.text(numText, barX + (barWidth - numWidth) / 2, chartBaseY + 5);
+      
+      // Description below item number (rotated or truncated)
+      doc.setFontSize(4);
+      doc.setFont('helvetica', 'normal');
+      const descWords = item.description.split(' ');
+      const shortDesc = descWords.length > 2 ? descWords.slice(0, 2).join(' ') + '...' : item.description;
+      const descWidth = doc.getTextWidth(shortDesc);
+      doc.text(shortDesc, barX + (barWidth - descWidth) / 2, chartBaseY + 9);
+    });
+    
+    yPos = chartBaseY + 15;
+    
+    // Add legend
+    doc.setFontSize(6);
+    doc.setFont('helvetica', 'normal');
+    doc.setFillColor(220, 53, 69);
+    doc.rect(margin, yPos, 8, 5, 'F');
+    doc.setTextColor(...ocadoDarkGrey);
+    doc.text('Vital Few (<=80%)', margin + 10, yPos + 4);
+    
+    doc.setFillColor(88, 166, 255);
+    doc.rect(margin + 55, yPos, 8, 5, 'F');
+    doc.text('Trivial Many (>80%)', margin + 65, yPos + 4);
+  }
 }
 
 // Get canvas image (background + annotations) as data URL
