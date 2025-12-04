@@ -372,6 +372,12 @@ async function createReportPDF() {
   // Render dashboard on third page
   addDashboardPage(doc, dashboardData, margin, contentWidth, pageWidth, pageHeight, ocadoBlue, ocadoDarkBlue, ocadoNavy, ocadoDarkGrey, ocadoLightGrey);
   
+  // Fourth page - Conclusion and Suggested Actions
+  doc.addPage();
+  
+  // Render conclusion page
+  addConclusionPage(doc, dashboardData, analysisSetup, stackData, margin, contentWidth, pageWidth, pageHeight, ocadoBlue, ocadoDarkBlue, ocadoNavy, ocadoDarkGrey, ocadoLightGrey);
+  
   // Log final page count
   const totalPages = doc.internal.getNumberOfPages();
   console.log('PDF generation complete. Total pages:', totalPages);
@@ -829,6 +835,49 @@ function addDashboardPage(doc, data, margin, contentWidth, pageWidth, pageHeight
     doc.setFillColor(88, 166, 255);
     doc.rect(margin + 55, yPos, 8, 5, 'F');
     doc.text('Trivial Many (>80%)', margin + 65, yPos + 4);
+  }
+}
+
+// Add conclusion and suggested actions page
+function addConclusionPage(doc, dashboardData, analysisSetup, stackData, margin, contentWidth, pageWidth, pageHeight, ocadoBlue, ocadoDarkBlue, ocadoNavy, ocadoDarkGrey, ocadoLightGrey) {
+  let yPos = margin + 20;
+  
+  // Get the conclusion text from the textarea
+  const conclusionTextarea = document.getElementById('conclusion-text');
+  const conclusionText = conclusionTextarea ? conclusionTextarea.value : '';
+  
+  // Title
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(...ocadoDarkBlue);
+  doc.text('Conclusions and Suggested Actions', margin, yPos);
+  yPos += 12;
+  
+  // Divider line
+  doc.setDrawColor(...ocadoBlue);
+  doc.setLineWidth(0.5);
+  doc.line(margin, yPos, pageWidth - margin, yPos);
+  yPos += 10;
+  
+  // Content from textarea
+  if (conclusionText && conclusionText.trim()) {
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...ocadoDarkGrey);
+    
+    // Word wrap the text to fit content width
+    const lines = doc.splitTextToSize(conclusionText, contentWidth);
+    lines.forEach(line => {
+      if (yPos > pageHeight - margin - 10) return; // Don't overflow page
+      doc.text(line, margin, yPos);
+      yPos += 6;
+    });
+  } else {
+    // Show placeholder if no text entered
+    doc.setFontSize(10);
+    doc.setFont('helvetica', 'italic');
+    doc.setTextColor(150, 150, 150);
+    doc.text('No conclusions or suggested actions have been entered.', margin, yPos);
   }
 }
 
