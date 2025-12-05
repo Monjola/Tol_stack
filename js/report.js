@@ -777,14 +777,49 @@ function addDashboardPage(doc, data, margin, contentWidth, pageWidth, pageHeight
     const numBars = data.paretoData.length;
     const chartWidth = contentWidth;
     const maxBarHeight = 50; // Maximum bar height
-    const barWidth = Math.min(15, (chartWidth - 20) / numBars - 2); // Bar width, max 15
-    const barGap = Math.max(2, ((chartWidth - 20) - (barWidth * numBars)) / (numBars + 1));
+    // Increase minimum gap to prevent text overlap
+    const minBarGap = 5;
+    const barWidth = Math.min(12, (chartWidth - 20 - (minBarGap * (numBars + 1))) / numBars); // Bar width, max 12
+    const barGap = Math.max(minBarGap, ((chartWidth - 20) - (barWidth * numBars)) / (numBars + 1));
     const chartStartX = margin + barGap;
     const chartBaseY = yPos + maxBarHeight; // Y position of bar bottoms
     
+    // Calculate cumulative percentages for line
     let cumulative = 0;
+    const cumulativeData = data.paretoData.map(item => {
+      cumulative += item.percent;
+      return cumulative;
+    });
+    
+    // Draw cumulative line first (behind bars)
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineWidth(1);
+    const lineYStart = chartBaseY;
+    
+    // Draw first point
+    const firstX = chartStartX + barWidth / 2;
+    const firstY = lineYStart - (cumulativeData[0] / 100) * maxBarHeight;
+    doc.setFillColor(100, 100, 100);
+    doc.circle(firstX, firstY, 1.5, 'F');
+    
+    // Draw lines and points for remaining bars
+    cumulativeData.forEach((cumPercent, index) => {
+      if (index === 0) return; // Skip first point (already drawn)
+      
+      const x1 = chartStartX + (index - 1) * (barWidth + barGap) + barWidth / 2;
+      const y1 = lineYStart - (cumulativeData[index - 1] / 100) * maxBarHeight;
+      const x2 = chartStartX + index * (barWidth + barGap) + barWidth / 2;
+      const y2 = lineYStart - (cumPercent / 100) * maxBarHeight;
+      
+      doc.line(x1, y1, x2, y2);
+      
+      // Draw point at each bar
+      doc.setFillColor(100, 100, 100);
+      doc.circle(x2, y2, 1.5, 'F');
+    });
     
     // Draw bars
+    cumulative = 0;
     data.paretoData.forEach((item, index) => {
       cumulative += item.percent;
       const isVitalFew = cumulative <= 80;
@@ -802,30 +837,56 @@ function addDashboardPage(doc, data, margin, contentWidth, pageWidth, pageHeight
       doc.rect(barX, barY, barWidth, barHeight, 'F');
       
       // Percentage on top of bar
-      doc.setFontSize(5);
+      doc.setFontSize(6);
       doc.setFont('helvetica', 'bold');
       doc.setTextColor(...ocadoDarkGrey);
       const percentText = `${item.percent.toFixed(0)}%`;
       const percentWidth = doc.getTextWidth(percentText);
-      doc.text(percentText, barX + (barWidth - percentWidth) / 2, barY - 2);
+      doc.text(percentText, barX + (barWidth - percentWidth) / 2, barY - 3);
       
-      // Item number below bar
+      // Cumulative percentage on line point (above the point)
       doc.setFontSize(5);
-      doc.setFont('helvetica', 'bold');
-      const numText = item.itemNumber;
-      const numWidth = doc.getTextWidth(numText);
-      doc.text(numText, barX + (barWidth - numWidth) / 2, chartBaseY + 5);
-      
-      // Description below item number (rotated or truncated)
-      doc.setFontSize(4);
       doc.setFont('helvetica', 'normal');
-      const descWords = item.description.split(' ');
-      const shortDesc = descWords.length > 2 ? descWords.slice(0, 2).join(' ') + '...' : item.description;
-      const descWidth = doc.getTextWidth(shortDesc);
-      doc.text(shortDesc, barX + (barWidth - descWidth) / 2, chartBaseY + 9);
+      const cumPercentText = `${cumulative.toFixed(0)}%`;
+      const cumPercentWidth = doc.getTextWidth(cumPercentText);
+      const cumY = chartBaseY - (cumulative / 100) * maxBarHeight;
+      // Position cumulative % above the point, but below the individual %
+      doc.text(cumPercentText, barX + (barWidth - cumPercentWidth) / 2, cumY - 6);
     });
     
-    yPos = chartBaseY + 15;
+    // Font size for labels
+    const labelFontSize = 6;
+    
+    // Calculate the max text width (for positioning)
+    doc.setFontSize(labelFontSize);
+    doc.setFont('helvetica', 'bold');
+    const maxTextWidth = Math.max(...data.paretoData.map(item => doc.getTextWidth(item.description)));
+    
+    // Position where text should END (just below the bars)
+    const labelTopY = chartBaseY + 5;
+    
+    // Draw text below bars - rotated 90 degrees using native jsPDF rotation
+    data.paretoData.forEach((item, index) => {
+      const barX = chartStartX + index * (barWidth + barGap);
+      const centerX = barX + barWidth / 2;
+      
+      doc.setFontSize(labelFontSize);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...ocadoDarkGrey);
+      
+      // Get this text's width
+      const thisTextWidth = doc.getTextWidth(item.description);
+      
+      // For 90 degree rotation: text starts at anchor and goes UP
+      // For END alignment: position anchor at (labelTopY + textWidth)
+      // This way all text ENDS at labelTopY
+      const textY = labelTopY + thisTextWidth;
+      
+      doc.text(item.description, centerX, textY, { angle: 90 });
+    });
+    
+    // Space for vertical text (based on longest text)
+    yPos = labelTopY + maxTextWidth + 5;
     
     // Add legend
     doc.setFontSize(6);
@@ -838,6 +899,14 @@ function addDashboardPage(doc, data, margin, contentWidth, pageWidth, pageHeight
     doc.setFillColor(88, 166, 255);
     doc.rect(margin + 55, yPos, 8, 5, 'F');
     doc.text('Trivial Many (>80%)', margin + 65, yPos + 4);
+    
+    // Add cumulative line legend
+    doc.setDrawColor(100, 100, 100);
+    doc.setLineWidth(1);
+    doc.line(margin + 120, yPos + 2, margin + 130, yPos + 2);
+    doc.setFillColor(100, 100, 100);
+    doc.circle(margin + 125, yPos + 2, 1.5, 'F');
+    doc.text('Cumulative %', margin + 133, yPos + 4);
   }
 }
 
