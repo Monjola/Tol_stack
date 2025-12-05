@@ -378,6 +378,9 @@ async function createReportPDF() {
   // Render conclusion page
   addConclusionPage(doc, dashboardData, analysisSetup, stackData, margin, contentWidth, pageWidth, pageHeight, ocadoBlue, ocadoDarkBlue, ocadoNavy, ocadoDarkGrey, ocadoLightGrey);
   
+  // Appendix pages - for dimensions with notes or sources
+  await addAppendixPages(doc, stackData, margin, contentWidth, pageWidth, pageHeight, ocadoBlue, ocadoDarkBlue, ocadoNavy, ocadoDarkGrey, ocadoLightGrey);
+  
   // Log final page count
   const totalPages = doc.internal.getNumberOfPages();
   console.log('PDF generation complete. Total pages:', totalPages);
@@ -879,6 +882,223 @@ function addConclusionPage(doc, dashboardData, analysisSetup, stackData, margin,
     doc.setTextColor(150, 150, 150);
     doc.text('No conclusions or suggested actions have been entered.', margin, yPos);
   }
+}
+
+// Add appendix pages for dimensions with notes or sources
+async function addAppendixPages(doc, stackData, margin, contentWidth, pageWidth, pageHeight, ocadoBlue, ocadoDarkBlue, ocadoNavy, ocadoDarkGrey, ocadoLightGrey) {
+  // Find dimensions that have notes or sources
+  const dimensionsWithData = stackData.filter((item, index) => {
+    const hasNotes = item.notes && item.notes.trim();
+    const hasSource = item.source && item.source.imageData;
+    return hasNotes || hasSource;
+  }).map((item, filteredIndex) => ({
+    ...item,
+    originalIndex: stackData.indexOf(item),
+    appendixNumber: filteredIndex + 1
+  }));
+  
+  if (dimensionsWithData.length === 0) {
+    return; // No appendix needed
+  }
+  
+  // Create an appendix page for each dimension with data
+  for (const item of dimensionsWithData) {
+    doc.addPage();
+    let yPos = margin + 10;
+    
+    // Appendix title
+    doc.setFontSize(14);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...ocadoDarkBlue);
+    doc.text(`Appendix A.${item.appendixNumber} - ${item.description}`, margin, yPos);
+    yPos += 8;
+    
+    // Divider line
+    doc.setDrawColor(...ocadoBlue);
+    doc.setLineWidth(0.5);
+    doc.line(margin, yPos, pageWidth - margin, yPos);
+    yPos += 10;
+    
+    // Dimension data table (single row)
+    doc.setFontSize(9);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...ocadoDarkBlue);
+    doc.text('Dimension Data', margin, yPos);
+    yPos += 6;
+    
+    // Table headers
+    const columns = ['#', 'Part Nr', 'Description', 'Nominal', 'Dir', 'Tol'];
+    const colWidths = [10, 25, 50, 25, 15, 20];
+    let xPos = margin;
+    
+    // Header row background
+    doc.setFillColor(...ocadoLightGrey);
+    doc.rect(margin, yPos - 3, contentWidth, 8, 'F');
+    
+    // Header text
+    doc.setFontSize(7);
+    doc.setFont('helvetica', 'bold');
+    doc.setTextColor(...ocadoDarkGrey);
+    columns.forEach((col, i) => {
+      doc.text(col, xPos + 2, yPos + 2);
+      xPos += colWidths[i];
+    });
+    yPos += 8;
+    
+    // Data row
+    xPos = margin;
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(...ocadoNavy);
+    const rowData = [
+      String(item.originalIndex + 1),
+      item.partNr || '',
+      item.description || '',
+      String(item.nominal || ''),
+      item.direction || '',
+      `±${item.tol || ''}`
+    ];
+    rowData.forEach((val, i) => {
+      const truncated = val.length > 20 ? val.substring(0, 18) + '...' : val;
+      doc.text(truncated, xPos + 2, yPos + 2);
+      xPos += colWidths[i];
+    });
+    
+    // Row border
+    doc.setDrawColor(...ocadoLightGrey);
+    doc.setLineWidth(0.3);
+    doc.rect(margin, yPos - 3, contentWidth, 8, 'S');
+    yPos += 15;
+    
+    // Notes section
+    if (item.notes && item.notes.trim()) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...ocadoDarkBlue);
+      doc.text('Notes', margin, yPos);
+      yPos += 6;
+      
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'normal');
+      doc.setTextColor(...ocadoDarkGrey);
+      
+      // Word wrap notes
+      const noteLines = doc.splitTextToSize(item.notes, contentWidth);
+      noteLines.forEach(line => {
+        if (yPos > pageHeight - margin - 50) return;
+        doc.text(line, margin, yPos);
+        yPos += 5;
+      });
+      yPos += 10;
+    }
+    
+    // Source image section
+    if (item.source && item.source.imageData) {
+      doc.setFontSize(9);
+      doc.setFont('helvetica', 'bold');
+      doc.setTextColor(...ocadoDarkBlue);
+      doc.text('Source Image', margin, yPos);
+      yPos += 6;
+      
+      try {
+        // Load and draw the source image
+        const imgData = await loadImageAsDataUrl(item.source.imageData);
+        if (imgData) {
+          // Calculate image dimensions to fit available space
+          const availableHeight = pageHeight - yPos - margin - 10;
+          const maxImgWidth = contentWidth;
+          const maxImgHeight = Math.min(availableHeight, 120);
+          
+          // Get image dimensions
+          const img = await loadImageDimensions(item.source.imageData);
+          const imgAspect = img.width / img.height;
+          
+          let imgWidth, imgHeight;
+          if (imgAspect > maxImgWidth / maxImgHeight) {
+            imgWidth = maxImgWidth;
+            imgHeight = maxImgWidth / imgAspect;
+          } else {
+            imgHeight = maxImgHeight;
+            imgWidth = maxImgHeight * imgAspect;
+          }
+          
+          // Draw image with rectangle overlay if exists
+          const sourceImgWithRect = await createSourceImageWithRectangle(item.source.imageData, item.source.rectangle, img.width, img.height);
+          
+          doc.addImage(sourceImgWithRect, 'PNG', margin, yPos, imgWidth, imgHeight);
+          yPos += imgHeight + 5;
+        }
+      } catch (e) {
+        console.error('Error adding source image to appendix:', e);
+        doc.setFontSize(8);
+        doc.setFont('helvetica', 'italic');
+        doc.setTextColor(150, 150, 150);
+        doc.text('Error loading source image', margin, yPos);
+      }
+    }
+  }
+}
+
+// Helper to load image and get dimensions
+function loadImageDimensions(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => resolve({ width: img.naturalWidth, height: img.naturalHeight });
+    img.onerror = reject;
+    img.src = src;
+  });
+}
+
+// Helper to load image as data URL (for cross-origin handling)
+function loadImageAsDataUrl(src) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth;
+        canvas.height = img.naturalHeight;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/png'));
+      } catch (e) {
+        // If cross-origin fails, try using the original src
+        resolve(src);
+      }
+    };
+    img.onerror = () => resolve(src); // Fallback to original
+    img.src = src;
+  });
+}
+
+// Create source image with rectangle overlay
+async function createSourceImageWithRectangle(imageSrc, rectangle, imgWidth, imgHeight) {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth;
+      canvas.height = img.naturalHeight;
+      const ctx = canvas.getContext('2d');
+      
+      // Draw the image
+      ctx.drawImage(img, 0, 0);
+      
+      // Draw rectangle if exists
+      if (rectangle && rectangle.x !== undefined) {
+        ctx.strokeStyle = '#ff7b72';
+        ctx.lineWidth = Math.max(3, img.naturalWidth / 200);
+        ctx.strokeRect(rectangle.x, rectangle.y, rectangle.width, rectangle.height);
+      }
+      
+      resolve(canvas.toDataURL('image/png'));
+    };
+    
+    img.onerror = () => resolve(imageSrc); // Fallback
+    img.src = imageSrc;
+  });
 }
 
 // Get canvas image (background + annotations) as data URL
